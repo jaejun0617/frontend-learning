@@ -171,3 +171,321 @@ console.log('='.repeat(40));
  * 3. finally는 성공/실패 여부와 상관없이 무조건 실행된다. (로딩 종료 처리에 필수)
  * 4. catch 블록 안을 비워두지 마라. 최소한 `console.error(e)`라도 찍어야 디버깅이 가능하다.
  */
+
+/**
+ * =====================================================================
+ * 16_try_catch.js - Error Handling (2026 실무형 템플릿)
+ * =====================================================================
+ * 목표
+ * 1) try/catch/finally/throw 기본 + "왜"를 이해
+ * 2) 실무에서 가장 많이 터지는 에러(입력 검증/JSON 파싱/비동기 통신) 패턴 확보
+ * 3) 에러 분류(운영/개발), 로깅, 사용자 메시지 분리, 재시도(retry)까지 한 번에 정리
+ *
+ * 핵심 철학
+ * - 에러는 숨기지 말고 "분류"해서 다루자
+ * - 사용자에게는 친절한 메시지, 개발자에게는 디버깅 가능한 정보
+ * - 비동기는 try/catch + finally(로딩 해제)가 기본
+ */
+
+console.clear?.();
+console.log('='.repeat(60));
+console.log('16) Error Handling - try/catch/finally/throw');
+console.log('='.repeat(60));
+
+// ---------------------------------------------------------------------
+// 0) 유틸: 에러를 "표준 형태"로 정리(로그/토스트/서버 전송용)
+// ---------------------------------------------------------------------
+
+/**
+ * ✅ normalizeError
+ * - 왜? catch의 e는 뭐가 들어올지 확정이 아님(throw '문자열' 같은 케이스)
+ * - 그래서 "항상" name/message/stack을 가진 형태로 변환해두면 실무가 편해짐
+ */
+function normalizeError(e) {
+   if (e instanceof Error) {
+      return {
+         name: e.name,
+         message: e.message,
+         stack: e.stack,
+      };
+   }
+
+   // throw가 문자열/객체로 올 수도 있으니 방어
+   return {
+      name: 'UnknownError',
+      message: typeof e === 'string' ? e : JSON.stringify(e),
+      stack: undefined,
+   };
+}
+
+/**
+ * ✅ reportError
+ * - 왜? 실무에서 catch마다 console.log 찍으면 누락/중복이 생김
+ * - 중앙에서 로그 전략을 통일하면 디버깅이 훨씬 쉬워짐
+ */
+function reportError(e, context = {}) {
+   const err = normalizeError(e);
+
+   // 개발 환경에서는 stack까지 (운영에선 Sentry/Datadog 같은 곳으로 보냄)
+   console.error('[ERROR]', {
+      ...context,
+      ...err,
+   });
+}
+
+// ---------------------------------------------------------------------
+// 1) 기본 문법: try / catch / finally / throw
+// ---------------------------------------------------------------------
+console.log('\n=== 1) 기본 문법 ===');
+
+function runBasic() {
+   console.log('--- 실행 시작 ---');
+
+   try {
+      console.log('1) 정상 코드 실행');
+
+      // ✅ throw는 문자열보다 Error 객체 권장
+      // - 왜? stack trace가 있어야 "어디서" 터졌는지 추적 가능
+      throw new Error('데이터를 불러오는데 실패했습니다!');
+   } catch (e) {
+      console.log('--- catch: 에러 잡음 ---');
+      reportError(e, { scope: 'runBasic' });
+   } finally {
+      // ✅ finally는 성공/실패 상관없이 실행
+      // - 왜? 로딩 해제 / 리소스 정리(타이머, 이벤트, 연결) 등은 무조건 해야 함
+      console.log('--- finally: 무조건 실행 ---');
+      console.log('3) 작업 마무리(리소스 정리/로딩 해제)');
+   }
+}
+
+runBasic();
+console.log('='.repeat(60));
+
+// ---------------------------------------------------------------------
+// 2) Error 객체: name / message / stack
+// ---------------------------------------------------------------------
+console.log('\n=== 2) Error 객체 뜯어보기 ===');
+
+try {
+   // 없는 함수 호출 -> ReferenceError
+   nonExistentFunction();
+} catch (e) {
+   const err = normalizeError(e);
+   console.log('name:', err.name);
+   console.log('message:', err.message);
+   // stack은 길어서 전체를 출력하면 지저분할 수 있음
+   console.log('stack exists?', Boolean(err.stack));
+}
+
+console.log('='.repeat(60));
+
+// ---------------------------------------------------------------------
+// 3) 실무 패턴 A: 입력 검증(Validation) + 커스텀 에러
+// ---------------------------------------------------------------------
+console.log('\n=== 3) [실무] 입력 검증 + 커스텀 에러 ===');
+
+class ValidationError extends Error {
+   constructor(message, meta) {
+      super(message);
+      this.name = 'ValidationError';
+      this.meta = meta;
+   }
+}
+
+/**
+ * ✅ assert
+ * - 왜? 조건이 깨지면 "빨리" 실패시키는 게 유지보수에 좋음
+ * - (중첩 if 제거 + 에러가 난 지점을 명확히)
+ */
+function assert(condition, message, meta) {
+   if (!condition) throw new ValidationError(message, meta);
+}
+
+function register(password) {
+   // ✅ 정책(비즈니스 룰)은 예외로 표현하면 흐름이 깔끔
+   assert(typeof password === 'string', '비밀번호는 문자열이어야 합니다.', {
+      password,
+   });
+   assert(password.length >= 5, '비밀번호는 5자 이상이어야 합니다.', {
+      length: password.length,
+   });
+
+   return '가입 성공';
+}
+
+try {
+   register('1234');
+} catch (e) {
+   if (e instanceof ValidationError) {
+      // 사용자에게 보여줄 메시지(친절하게)
+      console.log('❌ 입력 오류:', e.message);
+      // 개발자용 컨텍스트(디버깅)
+      reportError(e, { scope: 'register', meta: e.meta });
+   } else {
+      console.log('❌ 알 수 없는 오류');
+      reportError(e, { scope: 'register' });
+   }
+}
+
+console.log('='.repeat(60));
+
+// ---------------------------------------------------------------------
+// 4) 실무 패턴 B: JSON 파싱은 반드시 try/catch
+// ---------------------------------------------------------------------
+console.log('\n=== 4) [실무] JSON.parse 에러 핸들링 ===');
+
+function safeJSONParse(jsonText) {
+   try {
+      // ✅ JSON.parse는 형식 조금만 틀려도 바로 SyntaxError
+      return { ok: true, value: JSON.parse(jsonText) };
+   } catch (e) {
+      reportError(e, { scope: 'safeJSONParse', jsonText });
+      return { ok: false, error: normalizeError(e) };
+   }
+}
+
+console.log(safeJSONParse('{"a": 1}'));
+console.log(safeJSONParse('{a: 1}')); // ❌
+
+console.log('='.repeat(60));
+
+// ---------------------------------------------------------------------
+// 5) 실무 패턴 C: async/await 에러 핸들링 + finally(로딩)
+// ---------------------------------------------------------------------
+console.log('\n=== 5) [실무] async/await + finally (로딩 해제) ===');
+
+/**
+ * ✅ mockApi
+ * - 실제 fetch 대신 실패/성공을 시뮬레이션
+ */
+async function mockApi({ shouldFail = false, delay = 400 } = {}) {
+   return new Promise((resolve, reject) => {
+      setTimeout(() => {
+         if (shouldFail) reject(new Error('503 Service Unavailable'));
+         else resolve({ ok: true, data: { id: 1, name: '안유진' } });
+      }, delay);
+   });
+}
+
+async function fetchUserData() {
+   let isLoading = true;
+
+   try {
+      console.log('⏳ 요청 시작');
+      const res = await mockApi({ shouldFail: true });
+      console.log('✅ 응답:', res);
+      return res;
+   } catch (e) {
+      // ✅ 사용자 메시지(간단) + 개발자 로그(상세) 분리
+      console.log('🚨 잠시 후 다시 시도해주세요.');
+      reportError(e, { scope: 'fetchUserData' });
+      return null;
+   } finally {
+      // ✅ 어떤 경우든 로딩 해제
+      isLoading = false;
+      console.log('🧹 로딩 종료:', isLoading);
+   }
+}
+
+// fetchUserData(); // 비동기 로그가 섞일 수 있어 필요할 때만 실행
+
+console.log('='.repeat(60));
+
+// ---------------------------------------------------------------------
+// 6) 고급: 재시도(Retry) 패턴 (네트워크에서 자주 씀)
+// ---------------------------------------------------------------------
+console.log('\n=== 6) [고급] Retry 패턴 ===');
+
+/**
+ * ✅ retry
+ * - 왜? 네트워크는 일시적으로 실패할 수 있음
+ * - 일정 횟수만 재시도하면 UX가 좋아짐
+ *
+ * 옵션
+ * - retries: 총 재시도 횟수
+ * - delayMs: 재시도 전 대기
+ * - shouldRetry: 어떤 에러면 재시도할지 결정(확장 포인트)
+ */
+async function retry(task, { retries = 2, delayMs = 300, shouldRetry } = {}) {
+   let lastError;
+
+   for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+         return await task(attempt);
+      } catch (e) {
+         lastError = e;
+
+         const allowRetry =
+            typeof shouldRetry === 'function' ? shouldRetry(e) : true;
+
+         if (!allowRetry || attempt === retries) {
+            throw e; // ✅ 최종 실패는 밖에서 처리
+         }
+
+         // ✅ 재시도 전 대기
+         await new Promise((r) => setTimeout(r, delayMs));
+      }
+   }
+
+   // 이 라인은 논리상 도달하지 않지만, 타입 안정성을 위해 반환
+   throw lastError;
+}
+
+(async () => {
+   try {
+      // 1~2번은 실패, 3번째에 성공시키는 시뮬레이션
+      const res = await retry(
+         async (attempt) => {
+            const shouldFail = attempt < 2;
+            return await mockApi({ shouldFail, delay: 200 });
+         },
+         { retries: 3, delayMs: 250 },
+      );
+
+      console.log('✅ retry 성공:', res);
+   } catch (e) {
+      console.log('🚨 retry 최종 실패');
+      reportError(e, { scope: 'retry-demo' });
+   }
+})();
+
+console.log('='.repeat(60));
+
+// ---------------------------------------------------------------------
+// 7) 고급: 에러 다시 던지기(Re-throw) - 책임 분리
+// ---------------------------------------------------------------------
+console.log('\n=== 7) [고급] Re-throw (책임 분리) ===');
+
+function dangerousWork() {
+   try {
+      // 내부에서 할 수 있는 로깅/정리만 하고
+      throw new Error('치명적인 에러');
+   } catch (e) {
+      reportError(e, { scope: 'dangerousWork' });
+      // ✅ 여기서 해결 불가면 상위 레이어로 전달
+      throw e;
+   }
+}
+
+try {
+   dangerousWork();
+} catch (e) {
+   console.log('🚨 상위 레이어에서 최종 처리:', normalizeError(e).message);
+}
+
+console.log('='.repeat(60));
+
+// ---------------------------------------------------------------------
+// 8) 핵심 요약(복습용)
+// ---------------------------------------------------------------------
+console.log('\n=== 8) 핵심 요약 ===');
+console.log('1) throw는 Error 객체로(스택 추적 필수)');
+console.log('2) JSON.parse / API 요청(async/await)은 반드시 try/catch');
+console.log('3) finally는 로딩/정리(무조건 실행)');
+console.log('4) 사용자 메시지 vs 개발자 로그를 분리');
+console.log('5) 재시도(Retry)는 네트워크 UX 개선에 효과적');
+console.log('6) 처리 불가 에러는 re-throw로 상위에서 책임지게');
+
+console.log('\n' + '='.repeat(60));
+console.log('try/catch 정리 끝!');
+console.log('='.repeat(60));
