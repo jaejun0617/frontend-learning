@@ -32,15 +32,15 @@ console.log('='.repeat(40));
  * 3) 따라서 에러가 발생하지 않음 (문제!)
  */
 
-console.log(name); // undefined (에러 아님!)
-var name = '코드팩토리';
-console.log(name); // 코드팩토리
+console.log(legacyName); // undefined (에러 아님!)
+var legacyName = '코드팩토리';
+console.log(legacyName); // 코드팩토리
 
 // 위 코드는 JavaScript 엔진이 아래처럼 해석함
-// var name;              // 1. 선언이 최상단으로
-// console.log(name);     // 2. undefined 출력
-// name = '코드팩토리';   // 3. 할당은 원래 위치에서
-// console.log(name);     // 4. 코드팩토리 출력
+// var legacyName;                // 1. 선언이 최상단으로
+// console.log(legacyName);       // 2. undefined 출력
+// legacyName = '코드팩토리';     // 3. 할당은 원래 위치에서
+// console.log(legacyName);       // 4. 코드팩토리 출력
 
 console.log('='.repeat(40));
 
@@ -223,19 +223,19 @@ console.log('='.repeat(40));
  *   TDZ에 걸려있다는 증거!
  */
 
-let name = '외부 변수';
+let scopedName = '외부 변수';
 
 function test() {
-   // console.log(name); // ❌ ReferenceError
+   // console.log(scopedName); // ❌ ReferenceError
    // 만약 호이스팅이 안 됐다면 '외부 변수'가 출력되어야 함
-   // 하지만 에러 발생 = 호이스팅된 내부 name이 TDZ에 있음
+   // 하지만 에러 발생 = 호이스팅된 내부 scopedName이 TDZ에 있음
 
-   let name = '내부 변수';
-   console.log(name); // 내부 변수
+   let scopedName = '내부 변수';
+   console.log(scopedName); // 내부 변수
 }
 
 test();
-console.log(name); // 외부 변수
+console.log(scopedName); // 외부 변수
 
 console.log('='.repeat(40));
 
@@ -288,6 +288,121 @@ function processUser() {
 }
 
 processUser();
+
+console.log('='.repeat(40));
+
+// ==========================================
+// 12. 추가 심화 포인트 (면접에서 점수 올라가는 파트)
+// ==========================================
+/**
+ * ✅ 여기부터는 “호이스팅”을 한 단계 더 정확히 설명할 때 쓰는 재료들
+ * - class도 TDZ가 있다
+ * - default parameter도 TDZ가 있다
+ * - 블록 안 함수 선언은(특히 strict) 스코프가 다르게 동작할 수 있다
+ * - for + 비동기에서 var/let 차이가 폭발한다
+ */
+
+function printError(label, fn) {
+   try {
+      fn();
+   } catch (e) {
+      console.log(`${label}:`, e.name, '-', e.message);
+   }
+}
+
+// 12-1) class 선언도 “끌어올려진 것처럼 보이지만” TDZ 때문에 먼저 쓰면 터짐
+console.log('--- class TDZ ---');
+printError('class 선언 전 사용', () => {
+   new IdolClass();
+});
+
+class IdolClass {
+   constructor() {
+      this.name = '아이브';
+   }
+}
+
+console.log('class 선언 후 사용:', new IdolClass().name);
+
+console.log('='.repeat(40));
+
+// 12-2) default parameter TDZ (면접 단골)
+console.log('--- default parameter TDZ ---');
+printError('f(x = y, y = 1)', () => {
+   (function f(x = y, y = 1) {
+      return [x, y];
+   })();
+});
+
+console.log(
+   '정상 케이스:',
+   (function ok(x = 1, y = 2) {
+      return [x, y];
+   })(),
+);
+
+console.log('='.repeat(40));
+
+// 12-3) 블록 스코프 + 함수 선언 (strict 모드에서 특히 조심)
+console.log('--- block function (strict) ---');
+(function () {
+   'use strict';
+
+   if (true) {
+      function insideBlock() {
+         return '블록 안 함수';
+      }
+      console.log('블록 안 호출:', insideBlock());
+   }
+
+   // strict 환경에서는 블록 밖에서 접근이 안 되는 케이스가 많음
+   printError('블록 밖 호출', () => {
+      insideBlock();
+   });
+})();
+
+console.log('='.repeat(40));
+
+// 12-4) for + 비동기(setTimeout)에서 var vs let 차이
+console.log('--- for-loop closure (비동기) ---');
+for (var i = 0; i < 3; i++) {
+   setTimeout(() => console.log('var i:', i), 0); // 3,3,3
+}
+
+for (let j = 0; j < 3; j++) {
+   setTimeout(() => console.log('let j:', j), 0); // 0,1,2
+}
+
+console.log('='.repeat(40));
+
+// 12-5) (설명만) 모듈(import/export) 환경에서는 TDZ가 더 자주 드러남
+/**
+ * 📌 모듈에서 자주 보는 에러
+ * - import로 가져온 바인딩도 “초기화 전 접근”은 불가
+ * - 순환 참조(circular dependency) 상황에서 TDZ가 표면으로 튀어나옴
+ *
+ * 즉, "선언은 잡혔는데(존재는 하는데) 아직 값이 준비되지 않았다"가 TDZ의 본질.
+ */
+
+// ==========================================
+// 13. 실무 패턴 (호이스팅 사고 줄이는 습관)
+// ==========================================
+/**
+ * ✅ 실무 팁
+ * 1) 파일 상단에 "선언 구역"을 만들고, 아래에 "실행 구역"을 둔다
+ * 2) 함수는 const 함수 표현식/화살표로 통일하면 호출 타이밍이 선명해진다
+ * 3) 같은 스코프에서 var/let/const 섞어서 같은 이름 쓰지 말기 (이번 파일도 그 케이스가 있었음)
+ */
+
+// 선언 구역
+const add = (a, b) => a + b;
+
+function run() {
+   console.log('add(2, 3) =', add(2, 3));
+}
+
+// 실행 구역
+run();
 
 // ❌ 나쁜 예
 // processUser2(); // 선언 전 호출
