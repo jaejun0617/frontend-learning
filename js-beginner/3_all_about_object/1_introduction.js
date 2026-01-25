@@ -1,170 +1,285 @@
 /**
- * ==========================================
- * JavaScript 객체 생성 마스터 가이드 (2026년 최신)
- * ==========================================
+ * =====================================================================
+ * JavaScript 객체 생성 - 학습 + 실무 템플릿 (2026)
+ * =====================================================================
+ * ⭐ = 실무에서 자주 씀 / 🔥 = 중요·최신 관점 / 🛡️ = 방어적 코딩(Safety)
  *
- * [결론부터 말합니다]
- * 1. 단순 데이터 묶음 -> Object Literal ({}) 사용
- * 2. 핵심 비즈니스 모델 -> Class (Private + Static Factory) 사용 ⭐ (가장 중요)
- * 3. 나머지(생성자 함수, 단순 팩토리) -> 개념만 이해하고 실무에선 지양
+ * [핵심정리(먼저 읽기) 🔥]
+ * 1) 가장 많이 쓰는 건 2개:
+ *    - ⭐ Object Literal({}) : 설정/간단 DTO/임시 데이터
+ *    - ⭐ Class + Private(#) + Static Factory : 실무 "도메인 모델" 정답
+ * 2) 생성자 함수(function + new)는 레거시(면접/이해용). 실무 신규 코드는 class로.
+ * 3) 팩토리 함수는 가볍게 쓸 수 있지만, 메서드가 매번 새로 만들어져 메모리 낭비가 생길 수 있다.
+ * 4) 실무는 "데이터 보호 + 검증 + 일관된 생성"이 핵심이다. (Private + Validation + Factory) 🛡️
  */
 
-// ==========================================
-// [Level 1] 객체 리터럴 (Object Literal)
-// 👉 용도: 설정 파일, 일회성 데이터 전송 (DTO)
-// ==========================================
-console.log('=== 1. 객체 리터럴 (가벼운 용도) ===');
+console.clear?.();
 
-const simpleProfile = {
-   name: '안유진',
-   year: 2003,
-   // 간단한 동작 정의 가능
-   greet() {
-      console.log(`안녕하세요, ${this.name}입니다!`);
-   },
+// ---------------------------------------------------------------------
+// [Utility] 출력 포맷팅 (학습 가독성용)
+// ---------------------------------------------------------------------
+const line = (n = 72) => '='.repeat(n);
+const section = (title) => {
+   console.log(`\n${line()}`);
+   console.log(`▶ ${title}`);
+   console.log(line());
 };
 
-simpleProfile.greet();
+// =====================================================================
+// 1) [초급] Object Literal: "가장 직관적인" 객체
+// =====================================================================
+{
+   section('1. [초급] Object Literal (⭐ 가장 많이 씀)');
 
-console.log('='.repeat(40));
+   /**
+    * 왜 Object Literal을 쓰나?
+    * - 문법이 가장 간단하고, 한 번 쓰고 끝나는 데이터에 최적
+    * - 설정값(config), 화면 표시용 DTO, 테스트용 목업 데이터에 자주 사용 ⭐
+    */
 
-// ==========================================
-// [Level 2] 생성자 함수 (Constructor Function)
-// 👉 용도: 💀 사용 금지 (Class의 조상님, 면접용 지식)
-// ==========================================
-console.log('\n=== 2. 생성자 함수 (Legacy / 학습용) ===');
+   const simpleProfile = {
+      name: '안유진',
+      year: 2003,
 
-function LegacyIdol(name, year) {
-   this.name = name;
-   this.year = year;
+      // 메서드 축약형: this를 사용할 때 가장 기본이 되는 형태
+      greet() {
+         console.log(`안녕하세요, ${this.name}입니다!`);
+      },
+   };
+
+   simpleProfile.greet();
+
+   // 🛡️ 실무 팁: "변하지 않아야 하는" 설정은 freeze로 고정
+   // 왜? 누군가 실수로 값을 바꾸면 디버깅이 어려워짐
+   const config = Object.freeze({ theme: 'dark', retry: 3 });
+   console.log('config.theme:', config.theme);
 }
 
-// 메서드를 공유하기 위해 프로토타입에 직접 붙이던 시절... (불편함)
-LegacyIdol.prototype.dance = function () {
-   console.log(`${this.name}이 춤을 춥니다.`);
-};
+// =====================================================================
+// 2) [중급] 생성자 함수(레거시): class의 조상님
+// =====================================================================
+{
+   section('2. [중급] Constructor Function (레거시/면접용)');
 
-const legacyMember = new LegacyIdol('가을', 2002);
-legacyMember.dance();
+   /**
+    * 왜 알아야 하나?
+    * - class 문법도 내부적으로는 prototype 기반이라, 원리를 이해하면 응용이 쉬움 🔥
+    *
+    * 왜 실무에선 지양?
+    * - 문법/규칙이 느슨해서 실수하기 쉽고, 신규 코드는 class가 더 명확함
+    */
 
-console.log('='.repeat(40));
+   function LegacyIdol(name, year) {
+      this.name = name;
+      this.year = year;
+   }
 
-// ==========================================
-// [Level 3] 팩토리 함수 (Factory Function)
-// 👉 용도: 가벼운 유틸리티 생성 (메모리 효율 낮음)
-// ==========================================
-console.log('\n=== 3. 팩토리 함수 (가벼운 유틸리티) ===');
+   // ⭐ 메서드 공유의 핵심: prototype에 붙이면 인스턴스끼리 함수를 공유한다(메모리 절약)
+   LegacyIdol.prototype.dance = function () {
+      console.log(`${this.name}이(가) 춤을 춥니다.`);
+   };
 
-const createIdolUtil = (name, year) => {
-   return {
+   const legacyMember = new LegacyIdol('가을', 2002);
+   legacyMember.dance();
+
+   // 공유 확인
+   const a = new LegacyIdol('레이', 2004);
+   const b = new LegacyIdol('리즈', 2004);
+   console.log('함수 공유 여부:', a.dance === b.dance); // true ✅
+}
+
+// =====================================================================
+// 3) [고급] Factory Function: 가볍게 쓰되, "메서드 재생성"에 주의
+// =====================================================================
+{
+   section('3. [고급] Factory Function (가벼운 유틸, 단점도 같이)');
+
+   /**
+    * 왜 팩토리 함수를 쓰나?
+    * - class 없이도 객체를 쉽게 만들어낼 수 있음
+    * - 단순 유틸/작은 모듈/테스트 코드에서 빠르게 사용 가능
+    *
+    * 단점(🔥):
+    * - 객체를 만들 때마다 메서드(함수)가 새로 생성될 수 있다 → 메모리 낭비
+    */
+
+   const createIdolUtil = (name, year) => {
+      return {
+         name,
+         year,
+
+         // ⚠️ 주의: 여기서 introduce는 "매번 새 함수"가 만들어질 수 있음
+         introduce: () => console.log(`[Factory] 저는 ${name}입니다.`),
+      };
+   };
+
+   const factoryMember1 = createIdolUtil('레이', 2004);
+   const factoryMember2 = createIdolUtil('리즈', 2004);
+
+   console.log(
+      '함수 공유 여부:',
+      factoryMember1.introduce === factoryMember2.introduce,
+   ); // false ❌ (서로 다른 함수)
+
+   /**
+    * 🛡️ 개선(실무 팁): 메서드를 공유하고 싶으면 "공유 함수"를 밖으로 빼기
+    * 왜? 함수는 한 번만 만들고, 여러 객체에서 재사용 가능
+    */
+
+   const sharedIntroduce = function () {
+      console.log(`[Factory+Shared] 저는 ${this.name}입니다.`);
+   };
+
+   const createIdolUtilShared = (name, year) => ({
       name,
       year,
-      // ⚠️ 단점: 객체를 만들 때마다 함수가 새로 생성됨 (메모리 낭비)
-      introduce: () => console.log(`[Factory] 저는 ${name}입니다.`),
-   };
-};
+      introduce: sharedIntroduce,
+   });
 
-const factoryMember1 = createIdolUtil('레이', 2004);
-const factoryMember2 = createIdolUtil('리즈', 2004);
-
-// 서로 다른 함수를 가지고 있음 (메모리 2배)
-console.log(
-   '함수 공유 여부:',
-   factoryMember1.introduce === factoryMember2.introduce,
-); // false ❌
-
-console.log('='.repeat(40));
-
-// ==========================================
-// [Level 4] 🏆 방탄 클래스 (Robust Class Pattern)
-// 👉 용도: 실무 핵심 로직, 데이터 모델링 (Best Practice)
-// ==========================================
-console.log('\n=== 4. 🏆 방탄 클래스 (실무 최종 정답) ===');
-
-class IdolEntity {
-   // 🔒 Private Fields: 외부 해킹 방지
-   #name;
-   #year;
-
-   constructor({ name, year }) {
-      // 🛡️ Validation: 생성 단계에서 불량 데이터 차단
-      if (!name || typeof name !== 'string') {
-         throw new Error(`잘못된 이름입니다: ${name}`);
-      }
-      if (!year || typeof year !== 'number') {
-         throw new Error(`잘못된 연도입니다: ${year}`);
-      }
-
-      this.#name = name;
-      this.#year = year;
-   }
-
-   // Getter: 읽기 전용 (수정 불가)
-   get name() {
-      return this.#name;
-   }
-   get year() {
-      return this.#year;
-   }
-
-   // 메서드: 모든 인스턴스가 공유함 (메모리 효율적)
-   introduce() {
-      return `[Class] ${this.#year}년생 ${this.#name}입니다.`;
-   }
-
-   // 🏭 Static Factory: 데이터 -> 객체 변환 로봇
-   static from(data) {
-      return new IdolEntity(data);
-   }
+   const c = createIdolUtilShared('장원영', 2004);
+   const d = createIdolUtilShared('이서', 2007);
+   console.log('공유 함수 여부:', c.introduce === d.introduce); // true ✅
+   c.introduce();
 }
 
-// --- 실무 시뮬레이션 ---
+// =====================================================================
+// 4) [실무패턴] ⭐ Class + Private + Validation + Static Factory (최종 정답)
+// =====================================================================
+{
+   section('4. [실무패턴] Class Pattern (⭐ 실무 최종 정답)');
 
-// 1. API에서 넘어온 날것의 데이터 (불량 섞임)
-const rawDataList = [
-   { name: '장원영', year: 2004 }, // ✅ 정상
-   { name: '이서', year: 2007 }, // ✅ 정상
-   { name: '오류남', year: '몰라' }, // ❌ 불량 (연도 문자열)
-];
+   /**
+    * 실무에서 class를 쓰는 이유:
+    * - Private(#)로 데이터 보호 (외부에서 마음대로 수정 못하게) 🛡️
+    * - 생성 시점에 검증(Validation)으로 불량 데이터 차단 🛡️
+    * - Static Factory로 생성 규칙을 통일(입력 형태가 달라도 한 군데로) ⭐
+    */
 
-// 2. 안전하게 변환 (Map & Filter)
-const safeMembers = rawDataList
-   .map((data) => {
-      try {
-         return IdolEntity.from(data);
-      } catch (e) {
-         console.warn(`⚠️ 데이터 스킵: ${e.message}`);
-         return null;
+   class IdolEntity {
+      #name;
+      #year;
+
+      constructor({ name, year }) {
+         // 🛡️ 검증은 "생성 시점"에 하는 게 제일 싸고 안전함
+         // 왜? 잘못된 객체가 시스템 안으로 들어오면, 나중엔 어디서 깨졌는지 추적이 어렵다
+         if (typeof name !== 'string' || name.trim().length < 1) {
+            throw new TypeError(`잘못된 name: ${name}`);
+         }
+         if (!Number.isFinite(year)) {
+            throw new TypeError(`잘못된 year: ${year}`);
+         }
+
+         this.#name = name.trim();
+         this.#year = year;
       }
-   })
-   .filter((member) => member !== null); // null 제거
 
-// 3. 결과 확인
-console.log(`\n총 ${safeMembers.length}명의 멤버가 생성되었습니다.`);
+      // ⭐ Getter: 읽기 전용 인터페이스 제공
+      get name() {
+         return this.#name;
+      }
 
-safeMembers.forEach((member) => {
-   console.log(member.introduce());
-});
+      get year() {
+         return this.#year;
+      }
 
-// 4. 효율성 증명
-const memberA = safeMembers[0];
-const memberB = safeMembers[1];
-console.log('함수 공유 여부:', memberA.introduce === memberB.introduce); // true ✅ (메모리 절약)
+      // 🔥 파생 데이터는 getter로 제공하면 "항상 최신"이 된다
+      get age() {
+         return new Date().getFullYear() - this.#year;
+      }
 
-console.log('='.repeat(40));
+      // ⭐ 인스턴스 메서드: 모든 인스턴스가 공유(메모리 효율)
+      introduce() {
+         return `[Class] ${this.#year}년생 ${this.#name}입니다. (대략 ${this.age}살)`;
+      }
 
-/**
- * ==========================================
- * 🔥 최종 요약 가이드
- * ==========================================
- *
- * Q: 실무에서 뭐 써요?
- * A: [Level 4] 방탄 클래스 패턴을 가장 많이 씁니다.
- *    (Class + Private Field + Static Factory)
- *
- * 이유 1. 메모리 효율 (함수 공유)
- * 이유 2. 족보 확인 가능 (instanceof)
- * 이유 3. 데이터 보호 및 검증 (Private & Validation)
- *
- * 👉 이 코드를 템플릿처럼 저장해두고 계속 쓰세요!
- */
+      // ⭐ toJSON: 로그/전송/디버깅에 유용
+      toJSON() {
+         return { name: this.#name, year: this.#year, age: this.age };
+      }
+
+      // 🏭 Static Factory: 데이터 → 안전한 객체로 변환
+      static from(data) {
+         return new IdolEntity(data);
+      }
+
+      // 🔥 실무식: "실패를 감싼" safe factory
+      static safeFrom(data) {
+         try {
+            return { ok: true, value: IdolEntity.from(data) };
+         } catch (e) {
+            return {
+               ok: false,
+               error: e instanceof Error ? e.message : 'unknown error',
+            };
+         }
+      }
+
+      // ⭐ 불변성 선호: setter 대신 새 인스턴스 반환(withX)
+      withName(nextName) {
+         return IdolEntity.from({ name: nextName, year: this.#year });
+      }
+   }
+
+   // --- 실무 시뮬레이션 ---
+
+   // 1) API에서 넘어온 날것의 데이터(불량 섞임)
+   const rawDataList = [
+      { name: '장원영', year: 2004 },
+      { name: '이서', year: 2007 },
+      { name: '오류남', year: '몰라' },
+   ];
+
+   // 2) 안전하게 변환(Map)
+   const results = rawDataList.map((data) => IdolEntity.safeFrom(data));
+
+   // 3) 성공만 추출(Filter)
+   const safeMembers = results.filter((r) => r.ok).map((r) => r.value);
+
+   // 4) 실패는 따로 로깅
+   results
+      .filter((r) => !r.ok)
+      .forEach((r) => console.warn(`⚠️ 데이터 스킵: ${r.error}`));
+
+   console.log(`\n총 ${safeMembers.length}명의 멤버가 생성되었습니다.`);
+   safeMembers.forEach((m) => console.log(m.introduce()));
+
+   // 5) 메모리 효율 증명(메서드 공유)
+   const memberA = safeMembers[0];
+   const memberB = safeMembers[1];
+   console.log('함수 공유 여부:', memberA.introduce === memberB.introduce); // true ✅
+
+   // 6) 불변성 예시
+   const renamed = memberA.withName('리네임');
+   console.log('원본:', memberA.toJSON());
+   console.log('새 객체:', renamed.toJSON());
+}
+
+// =====================================================================
+// 5) [핵심정리] 복습 체크리스트 12개 ✅
+// =====================================================================
+{
+   section('5. [핵심정리] 복습 체크리스트 12개 ✅');
+
+   const checklist = [
+      'Object Literal({})은 설정/간단 DTO/목업에 가장 많이 쓴다. ⭐',
+      '변하지 않아야 하는 설정은 Object.freeze로 실수 방지할 수 있다. 🛡️',
+      '생성자 함수는 레거시지만 prototype 원리 이해에 도움 된다. 🔥',
+      'prototype에 메서드를 붙이면 인스턴스 간 함수가 공유된다. 🔥',
+      '팩토리 함수는 간단하지만 메서드가 매번 새로 생길 수 있다(메모리 낭비). 🔥',
+      '팩토리에서 메서드 공유가 필요하면 함수를 외부로 빼서 재사용한다. ⭐',
+      '실무 도메인 모델은 Class + Private(#)로 데이터 보호를 한다. ⭐🛡️',
+      '검증(Validation)은 생성 시점에 하는 게 가장 안전하고 싸다. 🛡️',
+      'Static Factory(from)는 생성 규칙을 한 곳으로 모아 일관성을 만든다. ⭐',
+      'safeFrom처럼 실패를 감싸면 로그/복구 흐름을 만들기 쉽다. 🔥',
+      '파생 데이터(age 등)는 getter로 제공하면 항상 최신이며 호출부가 깔끔해진다. 🔥',
+      'Setter 대신 withX로 새 인스턴스를 반환하면 불변성 흐름에 맞다. ⭐',
+   ];
+
+   checklist.forEach((item, idx) => {
+      console.log(`${String(idx + 1).padStart(2, '0')}. ${item}`);
+   });
+}
+
+console.log(`\n${line()}`);
+console.log('Object Creation 최종 템플릿 끝! ✅');
+console.log(line());
