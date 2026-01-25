@@ -69,22 +69,42 @@
             콘솔도 같이 확인하세요.
          </p>
 
-         <div class="card">
+         <div class="card" data-counter="A">
             <div class="row">
-               <span class="big" id="countA">A: 0</span>
-               <button id="incA">A +1</button>
-               <button id="resetA">A reset</button>
+               <span class="big" id="countA" data-role="count">A: 0</span>
+               <button id="incA" data-role="inc">A +1</button>
+               <button id="resetA" data-role="reset">A reset</button>
             </div>
             <p class="hint">A는 A만의 클로저 상태를 가집니다.</p>
          </div>
 
-         <div class="card">
+         <div class="card" data-counter="B">
             <div class="row">
-               <span class="big" id="countB">B: 0</span>
-               <button id="incB">B +1</button>
-               <button id="resetB">B reset</button>
+               <span class="big" id="countB" data-role="count">B: 0</span>
+               <button id="incB" data-role="inc">B +1</button>
+               <button id="resetB" data-role="reset">B reset</button>
             </div>
             <p class="hint">B는 B만의 클로저 상태를 가집니다(A와 독립).</p>
+         </div>
+
+         <div class="card" data-counter="C">
+            <div class="row">
+               <span class="big" id="countC" data-role="count">C: 0</span>
+               <button id="incC" data-role="inc">C +1</button>
+               <button id="resetC" data-role="reset">C reset</button>
+            </div>
+            <p class="hint">C는 C만의 클로저 상태를 가집니다(A/B와 독립).</p>
+         </div>
+
+         <div class="card">
+            <h2>컨트롤</h2>
+            <div class="row">
+               <button id="resetAll">모두 reset</button>
+               <button id="logToggle">로그 ON</button>
+            </div>
+            <p class="hint">
+               실무에선 디버그 로그를 토글하는 습관이 도움이 됩니다.
+            </p>
          </div>
 
          <div class="card">
@@ -106,55 +126,147 @@
       <script>
          console.clear?.();
 
+         /* ============================================================
+          * Closure Demo - 최종 완성본(학습+실무) ✅
+          * ============================================================
+          * 이 파일의 목표:
+          * 1) 클로저로 "상태를 기억"하는 counter를 만들고
+          * 2) DOM에서 자동으로 카운터를 수집(A/B/C/D...)해서
+          * 3) 렌더/이벤트를 공통 로직으로 처리한다.
+          *
+          * ⭐ 포인트
+          * - createCounter() 호출마다 서로 다른 private state(count)가 생김(클로저)
+          * - 이벤트는 "위임"(delegation)으로 1개 리스너만 사용(확장/유지보수 유리)
+          * - 디버그 로그는 토글 가능하게(실무 습관)
+          */
+
          // ------------------------------------------------------------
-         // 클로저로 만드는 "카운터"
+         // 🛡️ 디버그 로그 토글(실무에서 진짜 유용)
+         // ------------------------------------------------------------
+         let DEBUG = true;
+         const log = (...args) => {
+            if (DEBUG) console.log(...args);
+         };
+
+         // ------------------------------------------------------------
+         // 1) 클로저로 만드는 "카운터"
          // ------------------------------------------------------------
          function createCounter(label) {
-            let count = 0; // ✅ 이게 클로저로 유지되는 "private state"
+            let count = 0; // ✅ private state (클로저가 붙잡고 유지)
 
             const get = () => count;
+            const set = (next) => {
+               // 🛡️ 숫자만 허용(학습용 방어)
+               if (typeof next !== 'number' || Number.isNaN(next)) return;
+               count = next;
+            };
             const inc = () => (count += 1);
             const reset = () => (count = 0);
 
-            console.log(`[${label}] counter created`);
+            log(`[${label}] counter created`);
 
-            return { get, inc, reset };
+            return { get, set, inc, reset };
          }
 
-         const counterA = createCounter('A');
-         const counterB = createCounter('B');
+         // ------------------------------------------------------------
+         // 2) DOM에서 카운터 자동 수집(확장형)
+         // - HTML에 data-counter="A"만 추가하면 자동으로 붙는다.
+         // ------------------------------------------------------------
+         const $wrap = document.querySelector('.wrap');
+         // ⭐ NodeList → Array 변환(실무에서 가장 흔한 패턴: 스프레드)
+         const $cards = [...document.querySelectorAll('[data-counter]')];
 
-         const $countA = document.getElementById('countA');
-         const $countB = document.getElementById('countB');
+         const COUNTERS = $cards
+            .map(($card) => {
+               const label = $card.dataset.counter;
 
+               const $count = $card.querySelector('[data-role="count"]');
+               const $inc = $card.querySelector('[data-role="inc"]');
+               const $reset = $card.querySelector('[data-role="reset"]');
+
+               // 🛡️ 필요한 DOM이 빠졌으면 스킵(학습 중 실수해도 전체가 안 죽게)
+               if (!label || !$count || !$inc || !$reset) {
+                  console.warn('카운터 DOM 구성 누락:', { label, $card });
+                  return null;
+               }
+
+               return {
+                  label,
+                  counter: createCounter(label),
+                  $card,
+                  $count,
+               };
+            })
+            .filter(Boolean);
+
+         // label -> item 빠르게 찾기(이벤트 위임에서 유용)
+         const COUNTER_MAP = new Map(COUNTERS.map((it) => [it.label, it]));
+
+         // ------------------------------------------------------------
+         // 3) 렌더: 목록을 순회하며 자동 출력
+         // ------------------------------------------------------------
          const render = () => {
-            $countA.textContent = `A: ${counterA.get()}`;
-            $countB.textContent = `B: ${counterB.get()}`;
+            COUNTERS.forEach(({ label, counter, $count }) => {
+               $count.textContent = `${label}: ${counter.get()}`;
+            });
          };
 
-         document.getElementById('incA').addEventListener('click', () => {
-            console.log('A inc ->', counterA.inc());
-            render();
+         // ------------------------------------------------------------
+         // 4) 이벤트 위임(Delegation): 리스너 1개로 inc/reset 처리
+         // 왜 좋나?
+         // - 카운터가 늘어나도 리스너가 늘지 않음
+         // - DOM이 동적으로 추가돼도(추후) 같은 로직으로 처리 가능 ⭐
+         // ------------------------------------------------------------
+         $wrap.addEventListener('click', (e) => {
+            const $btn = e.target.closest('button');
+            if (!$btn) return;
+
+            // 컨트롤 버튼 처리
+            if ($btn.id === 'resetAll') {
+               log('resetAll');
+               COUNTERS.forEach(({ counter }) => counter.reset());
+               render();
+               return;
+            }
+
+            if ($btn.id === 'logToggle') {
+               DEBUG = !DEBUG;
+               $btn.textContent = DEBUG ? '로그 ON' : '로그 OFF';
+               console.log('DEBUG:', DEBUG);
+               return;
+            }
+
+            // 카운터 버튼 처리
+            const $card = $btn.closest('[data-counter]');
+            if (!$card) return;
+
+            const label = $card.dataset.counter;
+            const item = COUNTER_MAP.get(label);
+            if (!item) return;
+
+            const role = $btn.dataset.role;
+
+            if (role === 'inc') {
+               log(`${label} inc ->`, item.counter.inc());
+               render();
+               return;
+            }
+
+            if (role === 'reset') {
+               log(`${label} reset`);
+               item.counter.reset();
+               render();
+               return;
+            }
          });
 
-         document.getElementById('resetA').addEventListener('click', () => {
-            console.log('A reset');
-            counterA.reset();
-            render();
-         });
-
-         document.getElementById('incB').addEventListener('click', () => {
-            console.log('B inc ->', counterB.inc());
-            render();
-         });
-
-         document.getElementById('resetB').addEventListener('click', () => {
-            console.log('B reset');
-            counterB.reset();
-            render();
-         });
-
+         // 초기 렌더
          render();
+
+         // 초기 버튼 텍스트 동기화
+         const $logToggle = document.getElementById('logToggle');
+         if ($logToggle)
+            $logToggle.textContent = DEBUG ? '로그 ON' : '로그 OFF';
       </script>
    </body>
 </html>
