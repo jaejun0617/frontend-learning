@@ -1,0 +1,64 @@
+<script>
+   /* =====================================================================
+    * Execution Context & Call Stack - 초급 이해 템플릿 (2026)
+    * =====================================================================
+    * [핵심]
+    * 1) JS 코드는 "실행 컨텍스트(Execution Context)" 위에서 실행됩니다.
+    *    - Global Execution Context: 파일(스크립트) 시작 시 1번 생성
+    *    - Function Execution Context: 함수를 "호출"할 때마다 생성
+    *
+    * 2) 생성된 컨텍스트는 "콜 스택(Call Stack)"에 쌓입니다.
+    *    - 호출 → push(쌓임)
+    *    - 함수 종료(return/끝) → pop(빠짐)
+    *
+    * 3) 아래 예제는 three() → two() → one() 순서로 호출되며,
+    *    컨텍스트가 스택처럼 쌓였다가 역순으로 정리되는 모습을 보여줍니다.
+    */
+
+   // ------------------------------------------------------------
+   // 콘솔에서 "들어감/나옴"을 스택처럼 보이게 하는 작은 도구
+   // ------------------------------------------------------------
+   function logEnter(name) {
+      console.group(`▶ ENTER: ${name}()`);
+   }
+
+   function logExit(name) {
+      console.log(`◀ EXIT: ${name}()`);
+      console.groupEnd();
+   }
+
+   function one() {
+      logEnter('one');
+
+      console.log('one');
+      console.log('run one finished');
+
+      logExit('one');
+   }
+
+   function two() {
+      logEnter('two');
+
+      console.log('two');
+      one();
+      console.log('run two finished');
+
+      logExit('two');
+   }
+
+   function three() {
+      logEnter('three');
+
+      console.log('three');
+      two();
+      console.log('run three finished');
+
+      logExit('three');
+   }
+
+   // ------------------------------------------------------------
+   // Global Execution Context(전역 컨텍스트)에서 시작
+   // three() 호출 → Function Execution Context 생성/스택 push
+   // ------------------------------------------------------------
+   three();
+</script>
