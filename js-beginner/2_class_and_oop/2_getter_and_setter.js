@@ -1,612 +1,504 @@
 /**
- * ==========================================
- * JavaScript Getter & Setter 완벽 정리 (2026년 최신)
- * ==========================================
- *
- * [핵심 요약]
- * 1. Getter (get): 데이터를 '가져올 때' 사용 (읽기 전용 속성처럼 보임)
- * 2. Setter (set): 데이터를 '바꿀 때' 사용 (검증 로직 추가 가능)
- * 3. 2026년 트렌드: Setter보다는 '불변성(Immutability)'을 선호하는 추세
- *
+ * =====================================================================
+ * 2_getter_and_setter.js - Getter & Setter (학습 + 실무 템플릿)
+ * =====================================================================
  * ⭐ = 실무에서 자주 사용
- * 🔥 = 중요 개념
+ * 🔥 = 중요/최신/면접 포인트
+ *
+ * ---------------------------------------------------------------------
+ * ✅ 핵심정리 (먼저 보고 시작) 🔥
+ * ---------------------------------------------------------------------
+ * 1) Getter(get): "읽기"처럼 보이지만 내부적으로는 함수 실행(가공/계산) ⭐
+ * 2) Setter(set): "할당"처럼 보이지만 내부적으로 검증/변환/부작용 가능 → 신중 ⭐🔥
+ * 3) 실무 트렌드: Setter 남발 ❌  → 메서드(update/change) 또는 불변(immutable) 선호 ⭐🔥
+ * 4) Getter는 가능한 "순수"하게(상태 변경/네트워크 호출 X) 🔥
+ * 5) Private(#) + Getter 조합이 진짜 가치(캡슐화) ⭐🔥
  */
 
-// ==========================================
-// [초급] 기본 문법 (Computed Property) ⭐⭐⭐
-// ==========================================
-console.log('=== [초급] Getter/Setter 기본 ===');
+console.clear?.();
 
-class IdolModel {
-   name;
-   year;
-
-   constructor(name, year) {
-      this.name = name;
-      this.year = year;
-   }
-
-   /**
-    * Getter 🔥
-    * - 함수처럼 정의하지만, '속성'처럼 사용 (괄호 () 없음)
-    * - 기존 데이터를 가공해서 새로운 값을 반환할 때 유용
-    * - 계산된 속성(Computed Property)을 만들 때 사용
-    */
-   get nameAndYear() {
-      return `${this.name}-${this.year}`;
-   }
-
-   get age() {
-      return new Date().getFullYear() - this.year + 1;
-   }
-
-   // Getter는 읽기 전용처럼 동작
-   get upperName() {
-      return this.name.toUpperCase();
-   }
-
-   /**
-    * Setter 🔥
-    * - 값을 할당(=)할 때 실행
-    * - 반드시 파라미터 1개 필요
-    * - 검증 로직을 추가할 수 있음
-    */
-   set setName(name) {
-      console.log('Setter 실행됨!');
-      this.name = name;
-   }
-}
-
-const yuJin = new IdolModel('안유진', 2003);
-
-// Getter 사용 - 함수 호출이 아닌 속성 접근처럼
-console.log(yuJin.nameAndYear); // 안유진-2003
-console.log(yuJin.age); // 22 (2026 기준)
-console.log(yuJin.upperName); // 안유진
-
-// Setter 사용 - 할당문처럼
-yuJin.setName = '장원영';
-console.log(yuJin.name); // 장원영
-
-console.log('='.repeat(40));
-
-// ==========================================
-// [초급] 객체 리터럴에서 Getter/Setter
-// ==========================================
-console.log('\n=== 객체 리터럴에서 사용 ===');
-
-const person = {
-   firstName: '재준',
-   lastName: '신',
-
-   // Getter
-   get fullName() {
-      return `${this.lastName}${this.firstName}`;
-   },
-
-   // Setter
-   set fullName(name) {
-      const parts = name.split(' ');
-      this.lastName = parts[0];
-      this.firstName = parts[1];
-   },
+// ---------------------------------------------------------------------
+// 출력 유틸
+// ---------------------------------------------------------------------
+const line = (n = 60) => '='.repeat(n);
+const section = (title) => {
+   console.log(`\n${line()}`);
+   console.log(title);
+   console.log(line());
 };
 
-console.log(person.fullName); // 신재준
-person.fullName = '이 영희';
-console.log(person.firstName); // 영희
-console.log(person.lastName); // 이
+section('Getter & Setter - 학습 + 실무 템플릿');
 
-console.log('='.repeat(40));
+// =====================================================================
+// [초급] 1) 기본 문법: Getter/Setter는 "속성처럼" 쓰는 메서드 ⭐⭐⭐
+// =====================================================================
+section('[초급] 1) Getter/Setter 기본 ⭐⭐⭐');
+{
+   class IdolModel {
+      name;
+      birthYear;
 
-// ==========================================
-// [중급] Private 필드와 캡슐화 🔥🔥🔥
-// ==========================================
-console.log('\n=== [중급] Private 필드와 캡슐화 ===');
+      constructor(name, birthYear) {
+         this.name = name;
+         this.birthYear = birthYear;
+      }
 
-/**
- * Getter/Setter의 진짜 용도:
- * - Private 필드를 외부에서 안전하게 접근하도록
- * - 값 변경 시 검증(Validation) 추가
- * - 부작용(Side Effect) 제어
- */
+      /**
+       * Getter 🔥
+       * - 왜 쓰나?
+       *   "데이터를 읽는" 코드를 깔끔하게 만들면서
+       *   내부적으로는 가공/계산 로직을 숨길 수 있다.
+       */
+      get nameAndYear() {
+         return `${this.name}-${this.birthYear}`;
+      }
 
-class BankAccount {
-   #balance = 0; // Private 필드
-   owner;
+      get age() {
+         // ✅ 하드코딩(2026) 금지: 실행 시점 기준으로 항상 최신
+         return new Date().getFullYear() - this.birthYear;
+      }
 
-   constructor(owner, initialBalance) {
-      this.owner = owner;
-      this.#balance = initialBalance;
+      get upperName() {
+         return this.name.toUpperCase();
+      }
+
+      /**
+       * Setter 🔥
+       * - 왜 신중해야 하나?
+       *   obj.name = '...'처럼 "단순 할당"으로 보이는데
+       *   내부에서 검증/변환/부작용이 일어나면 예측이 어려워진다.
+       */
+      set rename(nextName) {
+         if (typeof nextName !== 'string' || nextName.trim().length < 2) {
+            console.log('❌ 이름은 공백 제외 2글자 이상이어야 합니다.');
+            return;
+         }
+         this.name = nextName.trim();
+      }
    }
 
-   // Getter: 읽기만 가능 (포맷팅 추가)
-   get balance() {
-      return `₩${this.#balance.toLocaleString()}`;
+   const yuJin = new IdolModel('안유진', 2003);
+
+   console.log('nameAndYear:', yuJin.nameAndYear);
+   console.log('age:', yuJin.age);
+   console.log('upperName:', yuJin.upperName);
+
+   // Setter는 "할당" 문법으로 호출됨
+   yuJin.rename = '장원영';
+   console.log('renamed:', yuJin.name);
+}
+
+// =====================================================================
+// [초급] 2) 객체 리터럴에서도 사용 가능
+// =====================================================================
+section('[초급] 2) 객체 리터럴 Getter/Setter');
+{
+   const person = {
+      firstName: '재준',
+      lastName: '신',
+
+      get fullName() {
+         // ⭐ 왜 getter가 좋나?
+         // - 사용자는 person.fullName만 보면 되고, 내부 결합 규칙은 숨긴다.
+         return `${this.lastName}${this.firstName}`;
+      },
+
+      set fullName(value) {
+         // 🔥 setter는 "들어오는 데이터"를 정제하는 용도로 제한적으로 사용
+         const parts = String(value).trim().split(' ');
+         this.lastName = parts[0] ?? this.lastName;
+         this.firstName = parts[1] ?? this.firstName;
+      },
+   };
+
+   console.log('fullName:', person.fullName);
+   person.fullName = '이 영희';
+   console.log('after set:', person.fullName);
+}
+
+// =====================================================================
+// [중급] 3) Private(#) + Getter: 캡슐화의 핵심 ⭐🔥
+// =====================================================================
+section('[중급] 3) Private + Getter (캡슐화) ⭐🔥');
+{
+   /**
+    * ✅ 실무에서 Getter/Setter의 "진짜" 가치
+    * - private 필드를 외부에 안전하게 노출
+    * - 읽기(조회)는 getter
+    * - 변경은 보통 "메서드"(deposit/withdraw)로 명확하게
+    */
+
+   class BankAccount {
+      owner;
+      #balance = 0;
+
+      constructor(owner, initialBalance) {
+         this.owner = owner;
+         this.#balance = initialBalance;
+      }
+
+      // ⭐ getter: 읽기 전용 + 포맷팅
+      get balanceLabel() {
+         return `₩${this.#balance.toLocaleString('ko-KR')}`;
+      }
+
+      // ⭐ getter: 계산/로직용 숫자
+      get balance() {
+         return this.#balance;
+      }
+
+      // ⚠️ setter로 잔액을 직접 바꾸는 건 실무에서 지양하는 편
+      // - 왜? 잔액 변경은 규칙이 많고(검증/이력/로그), 의도도 애매해짐
+
+      deposit(amount) {
+         if (amount <= 0) throw new Error('입금액은 0보다 커야 합니다.');
+         this.#balance += amount;
+         return this.balanceLabel;
+      }
+
+      withdraw(amount) {
+         if (amount <= 0) throw new Error('출금액은 0보다 커야 합니다.');
+         if (this.#balance < amount) throw new Error('잔액이 부족합니다.');
+         this.#balance -= amount;
+         return this.balanceLabel;
+      }
    }
 
-   // Getter: 숫자로 반환 (계산용)
-   get balanceNumber() {
-      return this.#balance;
-   }
+   const account = new BankAccount('신재준', 10000);
+   console.log('balanceLabel:', account.balanceLabel);
 
-   // Setter: 검증 로직 추가 🔥
-   set balance(amount) {
-      if (amount < 0) {
-         console.log('❌ 잔액은 음수가 될 수 없습니다!');
-         return;
-      }
-      if (amount > 10000000) {
-         console.log('❌ 1천만원 이상은 본인 인증이 필요합니다!');
-         return;
-      }
-      console.log(`✅ 잔액을 ${amount}원으로 변경합니다.`);
-      this.#balance = amount;
-   }
-
-   // 대신 메서드 사용 권장 (명확함)
-   deposit(amount) {
-      if (amount <= 0) {
-         return '❌ 입금액은 0보다 커야 합니다.';
-      }
-      this.#balance += amount;
-      return `✅ ${amount}원 입금 완료. 잔액: ${this.balance}`;
-   }
-
-   withdraw(amount) {
-      if (amount <= 0) {
-         return '❌ 출금액은 0보다 커야 합니다.';
-      }
-      if (this.#balance < amount) {
-         return '❌ 잔액이 부족합니다.';
-      }
-      this.#balance -= amount;
-      return `✅ ${amount}원 출금 완료. 잔액: ${this.balance}`;
+   try {
+      console.log('deposit:', account.deposit(5000));
+      console.log('withdraw:', account.withdraw(3000));
+      console.log('balance(number):', account.balance);
+   } catch (e) {
+      console.log('❌ error:', e.message);
    }
 }
 
-const account = new BankAccount('신재준', 10000);
+// =====================================================================
+// [중급] 4) Getter로 Computed Property 만들기 ⭐⭐⭐
+// =====================================================================
+section('[중급] 4) Getter로 Computed Property ⭐⭐⭐');
+{
+   class Rectangle {
+      #width;
+      #height;
 
-console.log(account.balance); // ₩10,000 (Getter)
-// console.log(account.#balance); // ❌ SyntaxError (Private)
-
-account.balance = -5000; // ❌ Setter 방어
-account.balance = 20000; // ✅ 변경됨
-console.log(account.balance); // ₩20,000
-
-// 실무에서는 메서드가 더 명확
-console.log(account.deposit(5000));
-console.log(account.withdraw(3000));
-
-console.log('='.repeat(40));
-
-// ==========================================
-// [중급] Getter로 계산된 속성 만들기 ⭐⭐⭐
-// ==========================================
-console.log('\n=== Getter로 Computed Property ===');
-
-class Rectangle {
-   #width;
-   #height;
-
-   constructor(width, height) {
-      this.#width = width;
-      this.#height = height;
-   }
-
-   get width() {
-      return this.#width;
-   }
-
-   get height() {
-      return this.#height;
-   }
-
-   // 🔥 계산된 속성 (항상 최신 값 반환)
-   get area() {
-      return this.#width * this.#height;
-   }
-
-   get perimeter() {
-      return 2 * (this.#width + this.#height);
-   }
-
-   get diagonal() {
-      return Math.sqrt(this.#width ** 2 + this.#height ** 2);
-   }
-
-   // Setter로 크기 변경
-   set width(value) {
-      if (value <= 0) {
-         console.log('❌ 너비는 양수여야 합니다.');
-         return;
+      constructor(width, height) {
+         this.#width = width;
+         this.#height = height;
       }
-      this.#width = value;
+
+      get width() {
+         return this.#width;
+      }
+
+      get height() {
+         return this.#height;
+      }
+
+      // 🔥 computed property: 내부 값이 바뀌면 항상 최신 값 반환
+      get area() {
+         return this.#width * this.#height;
+      }
+
+      get perimeter() {
+         return 2 * (this.#width + this.#height);
+      }
+
+      // ⚠️ setter는 "검증" 정도까지만(부작용 최소화)
+      set width(value) {
+         if (value <= 0) {
+            console.log('❌ 너비는 양수여야 합니다.');
+            return;
+         }
+         this.#width = value;
+      }
+
+      set height(value) {
+         if (value <= 0) {
+            console.log('❌ 높이는 양수여야 합니다.');
+            return;
+         }
+         this.#height = value;
+      }
    }
 
-   set height(value) {
-      if (value <= 0) {
-         console.log('❌ 높이는 양수여야 합니다.');
-         return;
-      }
-      this.#height = value;
-   }
+   const rect = new Rectangle(10, 20);
+   console.log('area:', rect.area); // 200
+
+   rect.width = 15;
+   console.log('area(after width=15):', rect.area); // 300
 }
 
-const rect = new Rectangle(10, 20);
+// =====================================================================
+// [고급] 5) Lazy Getter(캐싱)로 성능 최적화 🔥
+// =====================================================================
+section('[고급] 5) Lazy Getter (캐싱) 🔥');
+{
+   /**
+    * ✅ Lazy Getter 패턴
+    * - 왜?
+    *   계산 비용이 큰 값은 매번 계산하면 느려짐
+    *   최초 1번만 계산하고 캐시해 두면 빠름
+    *
+    * ⚠️ 주의
+    * - 캐시가 "언제 무효화"되는지 정책이 필요
+    */
 
-console.log('너비:', rect.width); // 10
-console.log('높이:', rect.height); // 20
-console.log('넓이:', rect.area); // 200
-console.log('둘레:', rect.perimeter); // 60
-console.log('대각선:', rect.diagonal.toFixed(2)); // 22.36
+   class ExpensiveCalculation {
+      #cache = null;
 
-// 크기 변경하면 자동으로 계산됨
-rect.width = 15;
-console.log('변경 후 넓이:', rect.area); // 300
+      get result() {
+         if (this.#cache !== null) {
+            console.log('캐시에서 반환');
+            return this.#cache;
+         }
 
-console.log('='.repeat(40));
+         console.log('계산 중...');
+         let sum = 0;
+         for (let i = 0; i < 1000000; i++) sum += i;
 
-// ==========================================
-// [고급] Lazy Getter (성능 최적화) 🔥
-// ==========================================
-console.log('\n=== Lazy Getter (캐싱) ===');
-
-/**
- * 비용이 큰 계산을 한 번만 하고 캐싱하는 패턴
- * 처음 접근할 때만 계산하고, 이후에는 저장된 값 반환
- */
-
-class ExpensiveCalculation {
-   #cache = null;
-
-   get result() {
-      // 캐시가 있으면 바로 반환
-      if (this.#cache !== null) {
-         console.log('캐시에서 반환');
+         this.#cache = sum;
          return this.#cache;
       }
 
-      // 처음에만 계산 (비용이 큰 작업 가정)
-      console.log('계산 중...');
-      let sum = 0;
-      for (let i = 0; i < 1000000; i++) {
-         sum += i;
+      resetCache() {
+         this.#cache = null;
       }
-
-      this.#cache = sum;
-      return this.#cache;
    }
 
-   // 캐시 초기화
-   resetCache() {
-      this.#cache = null;
-   }
+   const calc = new ExpensiveCalculation();
+   console.log(calc.result);
+   console.log(calc.result);
 }
 
-const calc = new ExpensiveCalculation();
+// =====================================================================
+// [실무패턴] 6) Getter는 OK, Setter는 신중 (불변성 선호) ⭐🔥
+// =====================================================================
+section('[실무패턴] 6) Getter OK / Setter 신중 (불변성) ⭐🔥');
+{
+   // ❌ Mutable: setter로 원본 변경(예상치 못한 변경 전파 가능)
+   class MutableIdol {
+      #name;
+      #age;
 
-console.log(calc.result); // 계산 중... → 결과
-console.log(calc.result); // 캐시에서 반환 → 결과 (빠름!)
-console.log(calc.result); // 캐시에서 반환 → 결과 (빠름!)
+      constructor(name, age) {
+         this.#name = name;
+         this.#age = age;
+      }
 
-console.log('='.repeat(40));
+      get name() {
+         return this.#name;
+      }
 
-// ==========================================
-// [실무] Getter는 OK, Setter는 신중히 🔥🔥🔥
-// ==========================================
-console.log('\n=== Setter를 기피하는 이유 ===');
+      set name(value) {
+         this.#name = value; // 원본 변경!
+      }
 
-/**
- * 2026년 실무 트렌드:
- * ✅ Getter는 자주 사용 (계산된 속성, 포맷팅)
- * ⚠️ Setter는 신중히 사용 (불변성 선호)
- */
-
-// ❌ Setter 방식 (원본 변경 - Mutation)
-class MutableIdol {
-   #name;
-   #age;
-
-   constructor(name, age) {
-      this.#name = name;
-      this.#age = age;
+      get info() {
+         return { name: this.#name, age: this.#age };
+      }
    }
 
-   get name() {
-      return this.#name;
+   const idol1 = new MutableIdol('안유진', 21);
+   idol1.name = '장원영';
+   console.log('mutable changed:', idol1.info);
+
+   // ✅ Immutable: setter 대신 "새 객체 반환" 메서드
+   class ImmutableIdol {
+      #name;
+      #age;
+
+      constructor(name, age) {
+         this.#name = name;
+         this.#age = age;
+      }
+
+      get name() {
+         return this.#name;
+      }
+
+      get age() {
+         return this.#age;
+      }
+
+      withName(nextName) {
+         // ⭐ 왜?
+         // - 원본을 건드리지 않아서 React/상태관리에서 안전
+         return new ImmutableIdol(nextName, this.#age);
+      }
+
+      withAge(nextAge) {
+         return new ImmutableIdol(this.#name, nextAge);
+      }
+
+      toJSON() {
+         return { name: this.#name, age: this.#age };
+      }
    }
 
-   set name(value) {
-      this.#name = value; // 원본 변경!
-   }
+   const idol2 = new ImmutableIdol('안유진', 21);
+   const idol3 = idol2.withName('장원영');
 
-   get info() {
-      return { name: this.#name, age: this.#age };
-   }
+   console.log('original:', idol2.toJSON());
+   console.log('new:', idol3.toJSON());
+   console.log('same object?:', idol2 === idol3); // false
 }
 
-const idol1 = new MutableIdol('안유진', 21);
-idol1.name = '장원영'; // 원본이 바뀜
-console.log('변경 후:', idol1.info);
+// =====================================================================
+// [실무패턴] 7) 실전 예제: User (getter는 파생값/포맷팅, 변경은 메서드) ⭐⭐⭐
+// =====================================================================
+section('[실무패턴] 7) 실전 예제: User 클래스 ⭐⭐⭐');
+{
+   class User {
+      #email;
+      #password;
+      #createdAt;
 
-// ✅ 불변 방식 (새 객체 생성 - Immutable)
-class ImmutableIdol {
-   #name;
-   #age;
+      constructor(email, password) {
+         this.#email = email;
+         this.#password = password;
+         this.#createdAt = new Date();
+      }
 
-   constructor(name, age) {
-      this.#name = name;
-      this.#age = age;
+      // ⭐ getter: 읽기 전용
+      get email() {
+         return this.#email;
+      }
+
+      // ⭐ getter: 파생 데이터(마스킹)
+      get maskedEmail() {
+         const [local, domain] = this.#email.split('@');
+         const masked = (local?.slice(0, 3) ?? '') + '***';
+         return `${masked}@${domain ?? ''}`;
+      }
+
+      // ⭐ getter: 계산된 값
+      get passwordStrength() {
+         const length = this.#password.length;
+         if (length < 6) return '약함';
+         if (length < 10) return '보통';
+         return '강함';
+      }
+
+      get daysSinceCreated() {
+         const diffMs = Date.now() - this.#createdAt.getTime();
+         return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      }
+
+      // ✅ 변경은 메서드로(의도 명확)
+      changePassword(oldPassword, newPassword) {
+         if (this.#password !== oldPassword)
+            return '❌ 기존 비밀번호가 일치하지 않습니다.';
+         if (newPassword.length < 6)
+            return '❌ 비밀번호는 6자 이상이어야 합니다.';
+         this.#password = newPassword;
+         return '✅ 비밀번호가 변경되었습니다.';
+      }
+
+      toJSON() {
+         // 민감 정보(password)는 노출 금지
+         return {
+            email: this.maskedEmail,
+            passwordStrength: this.passwordStrength,
+            daysSinceCreated: this.daysSinceCreated,
+         };
+      }
    }
 
-   get name() {
-      return this.#name;
-   }
+   const user = new User('yujin@ive.com', 'password123');
 
-   get age() {
-      return this.#age;
-   }
+   console.log('email:', user.email);
+   console.log('maskedEmail:', user.maskedEmail);
+   console.log('strength:', user.passwordStrength);
+   console.log('days:', user.daysSinceCreated);
 
-   // Setter 대신 메서드로 새 객체 반환
-   withName(newName) {
-      return new ImmutableIdol(newName, this.#age);
-   }
+   console.log(user.changePassword('wrong', 'new')); // 실패
+   console.log(user.changePassword('password123', 'newpass123')); // 성공
 
-   withAge(newAge) {
-      return new ImmutableIdol(this.#name, newAge);
-   }
-
-   toJSON() {
-      return { name: this.#name, age: this.#age };
-   }
+   console.log('json:', user.toJSON());
 }
 
-const idol2 = new ImmutableIdol('안유진', 21);
-const idol3 = idol2.withName('장원영'); // 새 객체 생성
+// =====================================================================
+// [실무패턴] 8) Getter/Setter vs 메서드: "의도"가 기준 ⭐⭐⭐
+// =====================================================================
+section('[실무패턴] 8) Getter/Setter vs 메서드(의도 기준) ⭐⭐⭐');
+{
+   class Product {
+      #price;
+      #quantity;
 
-console.log('원본:', idol2.toJSON()); // { name: '안유진', age: 21 }
-console.log('새객체:', idol3.toJSON()); // { name: '장원영', age: 21 }
-console.log('같은 객체?', idol2 === idol3); // false
-
-console.log('='.repeat(40));
-
-// ==========================================
-// [실무] 실전 예제 - User 클래스
-// ==========================================
-console.log('\n=== 실전 예제: User 클래스 ===');
-
-class User {
-   #email;
-   #password;
-   #createdAt;
-
-   constructor(email, password) {
-      this.#email = email;
-      this.#password = password;
-      this.#createdAt = new Date();
-   }
-
-   // Getter: 이메일 (읽기 전용)
-   get email() {
-      return this.#email;
-   }
-
-   // Getter: 마스킹된 이메일
-   get maskedEmail() {
-      const [local, domain] = this.#email.split('@');
-      const masked = local.slice(0, 3) + '***';
-      return `${masked}@${domain}`;
-   }
-
-   // Getter: 비밀번호 강도 (계산)
-   get passwordStrength() {
-      const length = this.#password.length;
-      if (length < 6) return '약함';
-      if (length < 10) return '보통';
-      return '강함';
-   }
-
-   // Getter: 가입 경과 일수
-   get daysSinceCreated() {
-      const now = new Date();
-      const diff = now - this.#createdAt;
-      return Math.floor(diff / (1000 * 60 * 60 * 24));
-   }
-
-   // Setter: 비밀번호 변경 (검증 포함)
-   changePassword(oldPassword, newPassword) {
-      if (this.#password !== oldPassword) {
-         return '❌ 기존 비밀번호가 일치하지 않습니다.';
+      constructor(price, quantity) {
+         this.#price = price;
+         this.#quantity = quantity;
       }
-      if (newPassword.length < 6) {
-         return '❌ 비밀번호는 6자 이상이어야 합니다.';
+
+      // ✅ Getter는 "계산된 값"에 적합
+      get total() {
+         return this.#price * this.#quantity;
       }
-      this.#password = newPassword;
-      return '✅ 비밀번호가 변경되었습니다.';
+
+      get formattedTotal() {
+         return `₩${this.total.toLocaleString('ko-KR')}`;
+      }
+
+      // ✅ 변경은 메서드로(의도 명확)
+      updatePrice(nextPrice) {
+         if (nextPrice < 0) throw new Error('가격은 0 이상이어야 합니다.');
+         this.#price = nextPrice;
+      }
+
+      updateQuantity(nextQty) {
+         if (nextQty < 0) throw new Error('수량은 0 이상이어야 합니다.');
+         this.#quantity = nextQty;
+      }
+
+      increaseQuantity(amount = 1) {
+         this.#quantity += amount;
+      }
+
+      decreaseQuantity(amount = 1) {
+         if (this.#quantity < amount) throw new Error('재고가 부족합니다.');
+         this.#quantity -= amount;
+      }
    }
 
-   // 객체 변환 (민감 정보 제외)
-   toJSON() {
-      return {
-         email: this.maskedEmail,
-         passwordStrength: this.passwordStrength,
-         daysSinceCreated: this.daysSinceCreated,
-      };
-   }
+   const product = new Product(10000, 5);
+   console.log('total:', product.formattedTotal);
+
+   product.updatePrice(12000);
+   product.increaseQuantity(3);
+   console.log('after:', product.formattedTotal);
 }
 
-const user = new User('yujin@ive.com', 'password123');
+// =====================================================================
+// [핵심정리] 10~12개 복습 체크포인트 ✅
+// =====================================================================
+section('[핵심정리] 복습 체크포인트 ✅');
+console.log('1) Getter는 "속성처럼" 보이지만 내부적으로 함수 실행이다. ⭐');
+console.log('2) Getter는 계산/가공/포맷팅(파생 데이터)에 특히 잘 맞는다. ⭐');
+console.log('3) Getter는 가능한 순수하게(상태 변경/네트워크 호출 X) 🔥');
+console.log(
+   '4) Setter는 할당처럼 보여서, 복잡 로직/부작용이 있으면 위험하다. 🔥',
+);
+console.log(
+   '5) Setter는 "간단한 검증/정제" 정도에서만 제한적으로 사용하자. ⭐',
+);
+console.log('6) Private(#) + Getter 조합이 캡슐화의 핵심이다. ⭐🔥');
+console.log(
+   '7) 중요한 변경(잔액/권한/비밀번호)은 setter보다 메서드가 명확하다. ⭐',
+);
+console.log('8) 불변성(immutable)은 상태관리/React에서 특히 안정적이다. ⭐🔥');
+console.log(
+   '9) computed property(get area)는 항상 최신 값을 제공해 UI/로직이 깔끔해진다. ⭐',
+);
+console.log('10) Lazy getter는 비용 큰 계산을 캐싱해서 성능을 올린다. 🔥');
+console.log(
+   '11) public API는 읽기(getter) / 변경(method)로 나누면 예측이 쉬워진다. ⭐',
+);
+console.log('12) 결론: Getter는 적극, Setter는 최소, 복잡하면 메서드로. ⭐🔥');
 
-console.log('이메일:', user.email); // yujin@ive.com
-console.log('마스킹 이메일:', user.maskedEmail); // yuj***@ive.com
-console.log('비밀번호 강도:', user.passwordStrength); // 보통
-console.log('가입 경과:', `${user.daysSinceCreated}일`);
-
-console.log(user.changePassword('wrong', 'new')); // ❌
-console.log(user.changePassword('password123', 'newpass123')); // ✅
-
-console.log('JSON:', user.toJSON());
-
-console.log('='.repeat(40));
-
-// ==========================================
-// [실무] Getter/Setter vs 메서드
-// ==========================================
-console.log('\n=== Getter/Setter vs 메서드 비교 ===');
-
-class Product {
-   #price;
-   #quantity;
-
-   constructor(price, quantity) {
-      this.#price = price;
-      this.#quantity = quantity;
-   }
-
-   // ✅ Getter: 계산된 값 (적합)
-   get total() {
-      return this.#price * this.#quantity;
-   }
-
-   get formattedTotal() {
-      return `₩${this.total.toLocaleString()}`;
-   }
-
-   // ❌ Setter: 복잡한 로직 (부적합)
-   // set total(value) {
-   //    // 가격과 수량 중 뭘 바꿔야 할지 애매함
-   // }
-
-   // ✅ 메서드: 명확한 의도 (권장)
-   updatePrice(newPrice) {
-      if (newPrice < 0) {
-         throw new Error('가격은 0 이상이어야 합니다.');
-      }
-      this.#price = newPrice;
-   }
-
-   updateQuantity(newQuantity) {
-      if (newQuantity < 0) {
-         throw new Error('수량은 0 이상이어야 합니다.');
-      }
-      this.#quantity = newQuantity;
-   }
-
-   increaseQuantity(amount = 1) {
-      this.#quantity += amount;
-   }
-
-   decreaseQuantity(amount = 1) {
-      if (this.#quantity < amount) {
-         throw new Error('재고가 부족합니다.');
-      }
-      this.#quantity -= amount;
-   }
-}
-
-const product = new Product(10000, 5);
-
-console.log('총 가격:', product.formattedTotal); // ₩50,000
-
-// 메서드로 명확하게 변경
-product.updatePrice(12000);
-product.increaseQuantity(3);
-
-console.log('변경 후:', product.formattedTotal); // ₩96,000
-
-console.log('='.repeat(40));
-
-// ==========================================
-// 핵심 정리
-// ==========================================
-/**
- * ==========================================
- * 🔥 Getter/Setter 사용 가이드 (2026)
- * ==========================================
- *
- * [Getter 사용 시기] ✅ 자주 사용
- *
- * 1. 계산된 속성 (Computed Property)
- *    get fullName() { return `${first} ${last}`; }
- *
- * 2. 포맷팅
- *    get formattedPrice() { return `₩${price}`; }
- *
- * 3. Private 필드 노출 (읽기 전용)
- *    get balance() { return this.#balance; }
- *
- * 4. 파생 데이터
- *    get age() { return 2026 - this.birthYear; }
- *
- * 5. 상태 체크
- *    get isValid() { return this.errors.length === 0; }
- *
- * [Setter 사용 시기] ⚠️ 신중히 사용
- *
- * ✅ 사용해도 되는 경우:
- * - 간단한 검증이 필요할 때
- * - Private 필드 설정 시 필수 검증
- * - 레거시 코드 호환성
- * - 라이브러리/프레임워크 API 제공
- *
- * ❌ 피해야 하는 경우:
- * - 복잡한 로직이 필요할 때 → 메서드 사용
- * - 부작용(Side Effect)이 클 때
- * - 불변성을 유지해야 할 때 (React 등)
- * - 단순 데이터 홀더(DTO)일 때
- *
- * ==========================================
- * 실무 권장사항
- * ==========================================
- *
- * 1. Getter는 자유롭게 사용
- *    - 속성처럼 보이는 계산된 값
- *    - 부작용이 없어야 함 (순수 함수)
- *    - 매번 계산해도 성능 이슈 없어야 함
- *
- * 2. Setter는 최소화
- *    - 검증이 필요한 경우만
- *    - 복잡하면 메서드로 대체
- *    - 이름을 명확하게 (setX보다 updateX)
- *
- * 3. 메서드 선호
- *    updatePrice(price)  // 명확함 ✅
- *    vs
- *    set price(value)    // 애매함 ⚠️
- *
- * 4. 불변성 고려
- *    // Setter 대신
- *    withName(name) {
- *       return new User(name, this.age);
- *    }
- *
- * ==========================================
- * 면접 단골 질문
- * ==========================================
- *
- * Q1: "Getter와 Setter를 왜 쓰나요?"
- * A: 캡슐화와 데이터 보호를 위해서입니다.
- *    Private 필드를 안전하게 접근하고,
- *    값 설정 시 검증 로직을 추가할 수 있습니다.
- *
- * Q2: "Setter보다 메서드를 선호하는 이유는?"
- * A: 의도가 더 명확하고, 복잡한 로직을 다루기 쉽습니다.
- *    불변성을 유지하는 최신 트렌드와도 맞습니다.
- *
- * Q3: "Getter에 부작용이 있으면 안 되는 이유는?"
- * A: Getter는 '값을 읽는' 행위로 보이므로,
- *    내부적으로 상태를 변경하거나 API를 호출하면
- *    예상치 못한 동작이 발생할 수 있습니다.
- *
- * Q4: "React에서 Setter를 안 쓰는 이유는?"
- * A: React는 불변성을 기반으로 동작합니다.
- *    객체를 직접 변경하면 상태 변화를 감지 못해
- *    리렌더링이 안 될 수 있습니다.
- *
- * Q5: "Private 필드 없이 Getter/Setter만 있으면?"
- * A: 의미가 없습니다. 그냥 public 필드와 같습니다.
- *    Getter/Setter의 진가는 Private과 함께 쓸 때 나옵니다.
- */
-
-console.log('\nGetter/Setter 완벽 정리 끝!');
+section('끝!');
+console.log('Getter/Setter 템플릿 정리 완료 ✅');
