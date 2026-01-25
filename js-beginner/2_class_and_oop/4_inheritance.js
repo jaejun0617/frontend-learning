@@ -1,126 +1,257 @@
 /**
- * ==========================================
- * JavaScript 상속 심화 & 동작 원리 (2026년 최신)
- * ==========================================
+ * =====================================================================
+ * JavaScript Inheritance(상속) - 학습 + 실무 템플릿 (2026)
+ * =====================================================================
+ * ⭐ = 실무에서 자주 씀 / 🔥 = 중요·최신 관점 / 🛡️ = 방어적 코딩(Safety)
  *
- * [보강 내용]
- * 1. super(): 자식 생성자에서 부모 생성자 호출 (필수!)
- * 2. Overriding: 부모의 메서드를 내 입맛대로 바꾸기
- * 3. Static Inheritance: 스태틱 메서드도 상속된다!
- * 4. Prototype Chain: instanceof가 true가 나오는 진짜 이유
+ * [핵심정리(먼저 읽기) 🔥]
+ * 1) `extends`는 "부모의 기능(메서드/프로토타입 체인)"을 물려받아 재사용한다.
+ * 2) 자식 클래스에 constructor가 있다면 `super(...)`는 "반드시" 먼저 호출해야 한다.
+ *    - 왜? `this`는 부모 생성자가 초기화해 주기 전엔 사용할 수 없다.
+ * 3) 오버라이딩(override)은 "메서드 이름은 유지"하고 "동작만 변경"하는 전략이다. ⭐
+ * 4) static 상속도 된다. (ChildClass.__proto__ === ParentClass) 🔥
+ * 5) instanceof는 "프로토타입 체인"에 해당 생성자의 prototype이 있는지 검사한다. 🔥
  */
 
-// ==========================================
-// 1. 부모 클래스 (Base Class)
-// ==========================================
-class IdolModel {
-   name;
-   year;
+console.clear?.();
 
-   constructor(name, year) {
-      this.name = name;
-      this.year = year;
+// ---------------------------------------------------------------------
+// [Utility] 출력 포맷팅 (학습 가독성용)
+// ---------------------------------------------------------------------
+const line = (n = 74) => '='.repeat(n);
+const section = (title) => {
+   console.log(`\n${line()}`);
+   console.log(`▶ ${title}`);
+   console.log(line());
+};
+
+// =====================================================================
+// 1) [초급] extends 기본: 공통 기능 재사용
+// =====================================================================
+{
+   section('1. [초급] extends 기본 개념');
+
+   class IdolModel {
+      name;
+      year;
+
+      constructor(name, year) {
+         this.name = name;
+         this.year = year;
+      }
+
+      sayHello() {
+         return `안녕하세요, 저는 ${this.name}입니다.`;
+      }
    }
 
-   // 일반 메서드
-   sayHello() {
-      return `안녕하세요, 저는 ${this.name}입니다.`;
+   // extends로 부모의 메서드를 "그대로" 물려받는다.
+   class FemaleModel extends IdolModel {
+      part;
+
+      constructor(name, year, part) {
+         // 🔥 자식 constructor에서 super는 필수 + 최우선 호출
+         // 왜? super가 실행돼야 부모가 this를 세팅해주고, 이후에야 this 사용 가능
+         super(name, year);
+         this.part = part;
+      }
+
+      dance() {
+         return `${this.name}이(가) ${this.part} 파트에서 춤을 춥니다.`;
+      }
    }
 
-   // 🔥 스태틱 메서드도 상속이 될까요? (네, 됩니다!)
-   static getJob() {
-      return '직업은 아이돌입니다.';
-   }
+   const yuJin = new FemaleModel('안유진', 2003, '보컬');
+
+   console.log('부모 메서드 재사용:', yuJin.sayHello());
+   console.log('자식 전용 기능:', yuJin.dance());
 }
 
-// ==========================================
-// 2. 자식 클래스 (Child Class) - 기능 확장
-// ==========================================
-class FemaleModel extends IdolModel {
-   part; // 자식에게만 있는 새로운 속성
+// =====================================================================
+// 2) [중급] ⭐ 오버라이딩(override) + super.method(): 기본 기능 재사용
+// =====================================================================
+{
+   section('2. [중급] 오버라이딩(override) + super.sayHello() ⭐');
 
-   constructor(name, year, part) {
-      // ⚠️ 주의: 자식 생성자(constructor)를 쓸 땐 무조건 super가 1번!
-      // super를 부르기 전엔 'this'를 사용할 수 없습니다.
-      super(name, year);
-      this.part = part;
+   class IdolModel {
+      name;
+      year;
+
+      constructor(name, year) {
+         this.name = name;
+         this.year = year;
+      }
+
+      sayHello() {
+         return `안녕하세요, 저는 ${this.name}입니다.`;
+      }
    }
 
-   dance() {
-      return `${this.name}이(가) ${this.part} 파트에서 춤을 춥니다.`;
+   class FemaleModel extends IdolModel {
+      part;
+
+      constructor(name, year, part) {
+         super(name, year);
+         this.part = part;
+      }
+
+      // ⭐ 오버라이딩: "같은 이름"을 유지하면서 내부 동작만 바꾼다.
+      // 왜? 호출하는 쪽 코드는 그대로 두고(=인터페이스 유지), 역할만 확장/변경할 수 있다.
+      sayHello() {
+         // super.sayHello()를 쓰면 부모의 기본 문장을 "베이스"로 재사용 가능
+         return `[Female] ${super.sayHello()} (${this.part}) 잘 부탁드려요!`;
+      }
    }
 
-   // ⭐ 오버라이딩 (Method Overriding)
-   // 부모한테 sayHello가 있지만, 덮어쓰기(재정의) 함
-   sayHello() {
-      // super.sayHello()를 쓰면 부모의 원래 기능도 살릴 수 있음
-      return `[Female] ${super.sayHello()} 잘 부탁드려요!`;
+   class MaleModel extends IdolModel {
+      sing() {
+         return `${this.name}이(가) 노래를 부릅니다.`;
+      }
+
+      // 오버라이딩 없이도 부모 메서드는 그대로 사용 가능
    }
+
+   const yuJin = new FemaleModel('안유진', 2003, '보컬');
+   const jaeJun = new MaleModel('신재준', 1996);
+
+   console.log('오버라이딩 결과:', yuJin.sayHello());
+   console.log('부모 그대로:', jaeJun.sayHello());
+   console.log('자식 전용:', jaeJun.sing());
 }
 
-class MaleModel extends IdolModel {
-   sing() {
-      return `${this.name}이(가) 노래를 부릅니다.`;
+// =====================================================================
+// 3) [고급] 🔥 Prototype Chain + instanceof의 "진짜" 동작
+// =====================================================================
+{
+   section('3. [고급] 프로토타입 체인 + instanceof 🔥');
+
+   class IdolModel {
+      name;
+      constructor(name) {
+         this.name = name;
+      }
    }
+
+   class FemaleModel extends IdolModel {}
+
+   const yuJin = new FemaleModel('안유진');
+
+   // instanceof는 "prototype chain"에 해당 prototype이 있는지 확인
+   console.log('yuJin instanceof FemaleModel:', yuJin instanceof FemaleModel); // true
+   console.log('yuJin instanceof IdolModel  :', yuJin instanceof IdolModel); // true
+   console.log('yuJin instanceof Object     :', yuJin instanceof Object); // true
+
+   // 🔥 직접 확인해보기(학습용)
+   console.log('Prototype(인스턴스) ->', Object.getPrototypeOf(yuJin));
+   console.log('FemaleModel.prototype ->', FemaleModel.prototype);
+   console.log(
+      'Object.getPrototypeOf(yuJin) === FemaleModel.prototype:',
+      Object.getPrototypeOf(yuJin) === FemaleModel.prototype,
+   );
+
+   // 체인 한 단계 더 올라가면 IdolModel.prototype
+   console.log(
+      'Object.getPrototypeOf(FemaleModel.prototype) === IdolModel.prototype:',
+      Object.getPrototypeOf(FemaleModel.prototype) === IdolModel.prototype,
+   );
 }
 
-// ==========================================
-// 3. 실행 및 검증
-// ==========================================
-console.log('=== 1. 인스턴스 생성 및 메서드 실행 ===');
+// =====================================================================
+// 4) [실무패턴] ⭐ 공통 규약(인터페이스) 유지: 다형성(Polymorphism)
+// =====================================================================
+{
+   section('4. [실무패턴] 다형성(Polymorphism)로 호출부 단순화 ⭐');
 
-const yuJin = new FemaleModel('안유진', 2003, '보컬');
-const jaeJun = new MaleModel('신재준', 1996);
+   /**
+    * 실무에서 상속을 쓰는 가장 좋은 순간:
+    * - "호출부(사용하는 쪽)"는 똑같이 부르는데,
+    * - 객체 타입(자식 클래스)에 따라 동작이 달라지게 만들고 싶을 때
+    *
+    * 왜 좋은가?
+    * - if/else로 타입 분기하는 코드가 줄어들어 유지보수성이 올라간다. ⭐
+    */
 
-// 자식만의 기능
-console.log(yuJin.dance()); // 안유진이(가) 보컬 파트에서 춤을 춥니다.
-console.log(jaeJun.sing()); // 신재준이(가) 노래를 부릅니다.
+   class Animal {
+      name;
+      constructor(name) {
+         this.name = name;
+      }
 
-// 오버라이딩 확인
-console.log(yuJin.sayHello()); // [Female] 안녕하세요... (바뀐 기능)
-console.log(jaeJun.sayHello()); // 안녕하세요... (부모 기능 그대로)
+      // 공통 규약(인터페이스): speak는 모든 동물이 가진다고 "약속"한다.
+      speak() {
+         // 🛡️ 베이스 클래스는 기본 동작을 두거나(옵션), 에러로 강제할 수도 있다.
+         // 여기서는 학습용으로 기본 메시지를 둔다.
+         return `${this.name}이(가) 소리를 냅니다.`;
+      }
+   }
 
-console.log('='.repeat(40));
+   class Dog extends Animal {
+      speak() {
+         return `${this.name}: 멍멍!`;
+      }
+   }
 
-console.log('\n=== 2. Static 상속 확인 ===');
-// FemaleModel에는 getJob이 없지만 부모한테서 물려받음
-console.log(FemaleModel.getJob()); // 직업은 아이돌입니다.
-console.log(MaleModel.getJob()); // 직업은 아이돌입니다.
+   class Cat extends Animal {
+      speak() {
+         return `${this.name}: 야옹!`;
+      }
+   }
 
-console.log('='.repeat(40));
+   // 호출부: 타입을 몰라도 speak()만 호출하면 된다.
+   const zoo = [new Dog('초코'), new Cat('나비'), new Animal('알수없음')];
+   zoo.forEach((a) => console.log(a.speak()));
+}
 
-console.log('\n=== 3. 프로토타입 체인과 instanceof ===');
-/**
- * instanceof는 "너의 족보(Prototype Chain)에 이 클래스가 있니?" 라고 묻는 것.
- */
+// =====================================================================
+// 4.5) [심화] 🔥 static 상속: 클래스 레벨 기능도 상속된다
+// =====================================================================
+{
+   section('4.5 [심화] static 상속 🔥');
 
-// 안유진 -> FemaleModel -> IdolModel -> Object
-console.log(yuJin instanceof FemaleModel); // true (직계 자식)
-console.log(yuJin instanceof IdolModel); // true (부모)
-console.log(yuJin instanceof Object); // true (모든 객체의 조상)
+   class Base {
+      static getJob() {
+         return '직업은 아이돌입니다.';
+      }
+   }
 
-console.log('----------------');
-console.log(jaeJun instanceof FemaleModel); // false (족보가 다름)
+   class Child extends Base {}
 
-console.log('='.repeat(40));
+   // ✅ 자식 클래스에서 부모 static 메서드 호출 가능
+   console.log('Child.getJob():', Child.getJob());
 
-/**
- * ==========================================
- * 🔥 실무 핵심 질문 (Interview Question)
- * ==========================================
- *
- * Q1. 자식 클래스 constructor에서 super()를 안 쓰면 어떻게 되나요?
- * A. ReferenceError가 발생합니다.
- *    자식 클래스는 빈 껍데기 상태로 시작하며, super()가 실행되어야
- *    비로소 부모가 this 인스턴스를 만들어서 자식에게 넘겨줍니다.
- *    그래서 super() 전에 this.name = ... 하면 에러가 납니다.
- *
- * Q2. 오버라이딩(Overriding)은 언제 쓰나요?
- * A. 부모가 제공하는 기본 기능이 자식에게 맞지 않을 때,
- *    이름은 똑같이 유지하면서 내부 동작만 바꾸고 싶을 때 사용합니다.
- *    (다형성 Polymorphism의 핵심)
- *
- * Q3) static 상속이 되는 진짜 이유?
- *  자식 클래스 객체의 프로토타입이 부모 클래스 객체를 가리킴
- *   Object.getPrototypeOf(ChildClass) === ParentClass
- */
+   // 🔥 진짜 이유: 클래스 자체도 객체이며, 클래스의 프로토타입 체인이 연결됨
+   console.log(
+      'Object.getPrototypeOf(Child) === Base:',
+      Object.getPrototypeOf(Child) === Base,
+   );
+}
+
+// =====================================================================
+// 5) [핵심정리] 복습 체크리스트 12개 ✅
+// =====================================================================
+{
+   section('5. [핵심정리] 복습 체크리스트 12개 ✅');
+
+   const checklist = [
+      '`extends`는 부모 기능을 재사용하기 위한 상속 문법이다.',
+      '자식에 constructor가 있으면 super(...)는 반드시 먼저 호출해야 한다. 🔥',
+      'super 호출 전에는 this를 사용할 수 없다. (ReferenceError) 🔥',
+      '오버라이딩은 "이름은 유지"하고 "동작만 변경"한다. ⭐',
+      'super.method()로 부모 기본 동작을 재사용하면서 확장할 수 있다. ⭐',
+      '호출부를 단순화하려면 다형성(Polymorphism)으로 if/else 분기를 줄인다. ⭐',
+      'instanceof는 프로토타입 체인에 해당 prototype이 있는지 검사한다. 🔥',
+      'Object.getPrototypeOf(obj)로 인스턴스의 상위 prototype을 확인할 수 있다.',
+      'static 메서드도 상속된다. (ChildClass가 ParentClass의 static 사용 가능) 🔥',
+      '클래스 자체도 객체라서 `Object.getPrototypeOf(Child) === Parent`가 성립한다. 🔥',
+      '상속은 "is-a" 관계가 명확할 때만 쓰고, 애매하면 조합(composition)도 고려한다. 🛡️',
+      '결론: 공통 규약(메서드)을 중심으로 설계하면 상속이 깔끔해진다. ✅',
+   ];
+
+   checklist.forEach((item, idx) => {
+      console.log(`${String(idx + 1).padStart(2, '0')}. ${item}`);
+   });
+}
+
+console.log(`\n${line()}`);
+console.log('Inheritance 최종 템플릿 끝! ✅');
+console.log(line());
