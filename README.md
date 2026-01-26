@@ -1,102 +1,106 @@
-## 🧱 HTML / CSS / JS 학습 
-
-### Box Model & Positioning
-- Margin / Padding / Border / Box-sizing 이해
-- `position`(static / relative / absolute / fixed / sticky) 원리
-- 레이아웃 기준점과 쌓임 맥락(Stacking Context) 이해
-
-### Layout Engine
-- **Flexbox**: 정렬과 흐름 제어 (1차원 레이아웃)
-- **Grid**: 구조 설계 (2차원 레이아웃)
-
-### Responsive Design
-- 모바일 / 태블릿 / 데스크탑 UI가 **완전히 다른 구조**로 동작하도록 설계
-- Breakpoints: **360 / 768 / 1200**
-- 단순 크기 축소가 아닌 **레이아웃 재구성 관점**
-
-### Motion & Interaction
-- CSS Transition 기본 원리
-- Easing(cubic-bezier)을 통한 상태 변화 표현
-- **CSS 3D Transforms / Perspective**로 입체적 UI 구현
-
-### Advanced Selectors
-- Advanced Selectors & Pseudo Classes
-- 상태 기반 UI 표현 (`:hover`, `:focus-visible`, `:checked` 등)
-- **JS 없이 조건부 UI 처리**
-
-### CSS Variables & Architecture
-- Design Tokens 기반 변수 설계
-- 컴포넌트 단위 스타일 관리
-- CSS Variables와 SCSS의 역할 분리
-
-### Modern CSS (Container-first)
-- **Media Query → Container Query 사고 전환**
-- 뷰포트가 아닌 **컨테이너 크기**에 반응하는 카드 UI 구현
-- 재사용 가능한 카드 컴포넌트 설계
-- Modern CSS 3종 세트 활용
-  - **Container Queries**
-  - **`:has()`**
-  - **CSS Nesting**
-
-### SCSS Preprocessor Logic
-- Variables / Maps / Mixins / Functions
-- Partial 분리와 구조적 SCSS 아키텍처
-- 반복 로직과 상태 스타일 자동화
-
-### Parallax Web
-- 스크롤 흐름을 고려한 시각적 레이어 설계
-- 과도한 JS 없이 CSS 중심 Parallax 구현
-- 사용자 경험을 해치지 않는 인터랙션 기준
+# frontend-learning 🧠✨
+프론트엔드 핵심 개념을 **코드로 기록하는 학습 레포**입니다.  
+HTML/CSS → JavaScript → TypeScript → React 흐름으로 “기초부터 실무 패턴까지” 정리합니다.
 
 ---
 
-## ⚙️ JavaScript Core (Day 15)
+## ✅ 이 레포에서 다루는 것
+- **HTML / CSS**: 레이아웃, 반응형, 모던 CSS(Container Query, :has, nesting), SCSS 아키텍처
+- **JavaScript**: 코어 문법, 객체/클래스, 실행 컨텍스트, 클로저, 비동기(Promise/async-await)
+- **TypeScript**: 타입 시스템, 실무 타입 패턴, React TS 적용
+- **React**: 컴포넌트 설계, 상태 관리, 렌더링 패턴, 실전 UI 구현
 
-### Variables & State
-- `const`와 `let`을 역할 기준으로 분리
-  - `const`: 변하지 않는 데이터 소스 (profiles)
-  - `let`: UI 상태(state)
-- 데이터와 상태를 구분하여 **예측 가능한 UI 흐름** 설계
+> 목표: “이해한 것”을 **코드와 주석(왜?)**로 남겨서, 다시 봐도 바로 떠오르게 만들기
 
-### Data Types & UI Mapping
-- String / Number / Boolean / Array 타입을 UI 표현 기준으로 사용
-- Boolean → Badge UI
-- Array → 리스트 / `join()` 출력
-- 빈 값에 대한 예외 처리 설계
+---
 
-### Template Literals
-- 문자열 결합이 아닌 **UI 구조 생성 도구**로 활용
-- HTML 마크업을 JS에서 동적으로 생성
-- 데이터 → 화면 변환 흐름 이해
+## 🗂️ 레포 구조 (트랙)
+> 각 폴더는 트랙 단위로 정리됩니다.
 
-### Type Guard & Validation
-- `typeof` 기반 런타임 타입 검증
-- 렌더링 전 `validateProfile()`로 데이터 안전성 확보
-- 잘못된 데이터는 UI 렌더링을 중단하고 에러 표시
+- `html-css/` : HTML/CSS/SCSS 트랙
+- `JavaScript/js-beginner/` : JavaScript 트랙 (템플릿 기반 학습 파일)
+- `TypeScript/` : TypeScript 트랙
+- `React/` : React 트랙
+- `foundations/` : CS/웹 기초
 
-### State → Render 패턴
-- 상태 변경은 이벤트에서만 수행
-- DOM 수정은 `render()` 함수 한 곳에서만 처리
-- `state 변경 → render()` 구조를 통해 React 사고 방식의 기초 체득
+---
 
-### UI 예외 케이스 처리
-- 배열 길이 0일 때 “없음” 처리
-- 잘못된 타입일 경우 카드 렌더링 차단
-- 사용자에게 에러를 명확히 보여주는 UI 설계
+## 🚀 빠른 시작 (실행 방법)
+
+### HTML/CSS 프로젝트 보기
+- 브라우저에서 `index.html` 열기 또는 Live Server 사용
+
+### JavaScript 파일 실행(Node)
+```bash
+node JavaScript/js-beginner/<path>/<file>.js
+```
+
+> 일부 예제는 브라우저 DOM이 필요해서 `.html`에서 실행됩니다.
+
+---
+
+## 📌 추천 학습 루트
+1) `html-css/`  
+2) `JavaScript/js-beginner/`  
+3) `TypeScript/`  
+4) `React/`
+
+---
+
+## 🧾 진행 현황 (요약)
+-  HTML/CSS 레이아웃 & 반응형
+-  모던 CSS(Container Query / :has / nesting)
+-  SCSS 구조 설계
+-  JS 코어(상태-렌더 패턴, 객체/클래스)
+-  JS 심화(클로저, 비동기: Promise/async-await)
+-  TypeScript 트랙 확장 중
+-  React 트랙 확장 중
+
+---
+
+## 🧱 HTML / CSS 학습 로그 (요약)
+- Box Model & Positioning
+- Flexbox / Grid
+- Responsive Design (360 / 768 / 1200)
+- Motion & Interaction (Transition, easing, 3D)
+- Advanced Selectors (`:hover`, `:focus-visible`, `:checked` 등)
+- CSS Variables & Architecture (Design Tokens)
+- Modern CSS (Container Queries / `:has()` / CSS Nesting)
+- SCSS Logic (Maps, Mixins, Functions)
+
+> 상세 기록은 `html-css/` 내부 문서/프로젝트 README에 정리합니다.
+
+---
+
+## ⚙️ JavaScript 학습 로그 (요약)
+- 변수/상태 분리 (`const` vs `let`)
+- 데이터 타입 → UI 매핑
+- Template Literals로 UI 구조 만들기
+- Type Guard & Validation (`typeof`, `Array.isArray`)
+- 상태 변경 → render 패턴(React 사고 기반)
+- 클래스/객체, 실행 컨텍스트, 클로저
+- 비동기: callback → promise → async/await
+
+> 최신 정리는 `JavaScript/js-beginner/` 내부 템플릿 파일에서 확인합니다.
 
 ---
 
 ## 🛠 Tech Stack
+- HTML5 / CSS3 / SCSS
+- JavaScript (ES6+)
+- TypeScript
+- React
+- Git / GitHub
 
-- **HTML5**
-- **CSS3**
-  - Flexbox / Grid
-  - Advanced Selectors & Pseudo
-  - CSS Variables
-  - Modern CSS Features
-  - SCSS
-- **JavaScript (ES6+)**
-  - Variables & Data Types
-  - Template Literals
-  - Type Guard (`typeof`, `Array.isArray`)
-  - State-based Rendering Pattern
+---
+
+## 🧩 커밋 컨벤션
+- `docs:` 문서/정리
+- `feat:` 기능/코드 추가
+- `chore:` 구조/세팅
+
+---
+
+## 📎 참고
+본 레포는 학습 목적입니다. 일부 코드는 AI 도구의 도움을 받아 작성/개선했으며,
+모든 내용은 이해를 전제로 정리했습니다.
