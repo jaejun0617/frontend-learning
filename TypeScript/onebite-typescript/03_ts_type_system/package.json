@@ -3,7 +3,7 @@
    "version": "1.0.0",
    "private": true,
    "description": "One-bite TypeScript - Section 3: Type System",
-   "type": "commonjs",
+   "type": "module",
    "scripts": {
       "check": "tsc --noEmit",
       "build": "tsc",
