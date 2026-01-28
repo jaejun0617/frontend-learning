@@ -1,0 +1,168 @@
+:root {
+   --bg: #0b1020;
+   --card: rgba(16, 26, 51, 0.86);
+   --text: #e8eef6;
+   --muted: #9aa4b2;
+   --line: rgba(255, 255, 255, 0.12);
+   --radius: 14px;
+   --pad: 18px;
+}
+
+* {
+   box-sizing: border-box;
+}
+
+body {
+   margin: 0;
+   font-family:
+      system-ui,
+      -apple-system,
+      Segoe UI,
+      Roboto,
+      Helvetica,
+      Arial,
+      sans-serif;
+   color: var(--text);
+   background: radial-gradient(
+      1200px 600px at 20% 0%,
+      #182754 0%,
+      var(--bg) 55%
+   );
+   line-height: 1.6;
+}
+
+.wrap {
+   max-width: 860px;
+   margin: 0 auto;
+   padding: 28px;
+}
+
+.header h1 {
+   margin: 0;
+   font-size: 22px;
+}
+
+.sub {
+   color: var(--muted);
+   margin: 8px 0 0;
+   font-size: 13px;
+}
+
+.card {
+   margin-top: 18px;
+   background: var(--card);
+   border: 1px solid var(--line);
+   border-radius: var(--radius);
+   padding: var(--pad);
+   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.label {
+   display: block;
+   font-size: 13px;
+   color: var(--muted);
+   margin-bottom: 8px;
+}
+
+.searchRow {
+   display: flex;
+   gap: 10px;
+   align-items: center;
+}
+
+input {
+   flex: 1;
+   min-width: 220px;
+   padding: 10px 12px;
+   border-radius: 12px;
+   border: 1px solid var(--line);
+   background: rgba(255, 255, 255, 0.03);
+   color: var(--text);
+   outline: none;
+}
+
+input:focus {
+   outline: 2px solid rgba(255, 255, 255, 0.18);
+}
+
+button {
+   cursor: pointer;
+   padding: 10px 12px;
+   border-radius: 12px;
+   border: 1px solid var(--line);
+   background: rgba(255, 255, 255, 0.04);
+   color: var(--text);
+}
+
+button:active {
+   transform: translateY(1px);
+}
+
+.metaRow {
+   margin-top: 10px;
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 12px;
+   flex-wrap: wrap;
+}
+
+.status {
+   color: var(--muted);
+}
+
+.hint {
+   color: rgba(232, 238, 246, 0.55);
+}
+
+.panel {
+   margin-top: 12px;
+   border-radius: 12px;
+   border: 1px dashed rgba(255, 255, 255, 0.18);
+   padding: 10px;
+   min-height: 56px;
+}
+
+.list {
+   list-style: none;
+   margin: 0;
+   padding: 0;
+   display: grid;
+   gap: 8px;
+}
+
+.item {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 10px;
+   padding: 10px 12px;
+   border-radius: 12px;
+   border: 1px solid rgba(255, 255, 255, 0.1);
+   background: rgba(255, 255, 255, 0.03);
+}
+
+.item b {
+   font-weight: 700;
+}
+
+.item small {
+   color: rgba(232, 238, 246, 0.55);
+}
+
+.empty {
+   color: rgba(232, 238, 246, 0.55);
+   padding: 6px 4px;
+   font-size: 13px;
+}
+
+.h2 {
+   margin: 0 0 8px;
+   font-size: 16px;
+}
+
+.bullets {
+   margin: 0;
+   padding-left: 18px;
+   color: rgba(232, 238, 246, 0.85);
+}

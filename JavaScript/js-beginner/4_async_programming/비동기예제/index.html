@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+   <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>DOM + Async Autocomplete Demo</title>
+      <link rel="stylesheet" href="./style.css" />
+      <script defer src="./main.js"></script>
+   </head>
+   <body>
+      <main class="wrap">
+         <header class="header">
+            <h1>Async Autocomplete (DOM + 비동기)</h1>
+            <p class="sub">
+               타이핑 → (디바운스 300ms) → 비동기 요청(흉내) → state→render로
+               목록 갱신 ⭐
+            </p>
+         </header>
+
+         <section class="card" id="app">
+            <label class="label" for="q">검색</label>
+
+            <div class="searchRow">
+               <input
+                  id="q"
+                  type="text"
+                  placeholder="예: re, pr, ty..."
+                  autocomplete="off"
+               />
+               <button type="button" data-role="clear">Clear</button>
+            </div>
+
+            <div class="metaRow">
+               <small id="status" class="status">status: idle</small>
+               <small id="hint" class="hint"
+                  >Tip: 빠르게 타이핑해도 요청이 폭발하지 않게 디바운스가
+                  막아줘요.</small
+               >
+            </div>
+
+            <div id="panel" class="panel" aria-live="polite">
+               <ul
+                  id="list"
+                  class="list"
+                  role="listbox"
+                  aria-label="suggestions"
+               ></ul>
+            </div>
+         </section>
+
+         <section class="card">
+            <h2 class="h2">핵심 포인트</h2>
+            <ul class="bullets">
+               <li>
+                  <b>디바운스</b>: 입력이 잠잠해질 때까지 기다렸다가 1번만 요청
+                  ⭐
+               </li>
+               <li>
+                  <b>비동기</b>: 네트워크(흉내)가 끝나면 결과로 화면을 갱신
+               </li>
+               <li>
+                  <b>경쟁 조건</b>: 늦게 온 응답이 최신 응답을 덮지 않도록 방어
+                  🛡️
+               </li>
+            </ul>
+         </section>
+      </main>
+   </body>
+</html>
